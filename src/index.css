@@ -74,8 +74,11 @@
 }
 
 @layer base {
-  html, body { background: var(--color-app-bg); color: var(--color-app-fg); }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  /* Base background lives ONLY on html (paint step 1 of the root stacking context),
+     so the fixed aurora-bg (z-index: -10) can sit above it without being occluded
+     by body's or any descendant's own background. */
+  html { background: var(--color-app-bg); color: var(--color-app-fg); }
+  body { color: var(--color-app-fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 }
 
 @layer components {

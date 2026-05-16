@@ -57,7 +57,7 @@ function Shell() {
   }
 
   return (
-    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden transition-colors relative">
+    <div className="h-screen w-screen text-app-fg p-4 overflow-hidden transition-colors relative">
       <div className="aurora-bg" aria-hidden="true">
         <div className="aurora-blob aurora-blob-1" />
         <div className="aurora-blob aurora-blob-2" />

@@ -33,7 +33,7 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onO
           placeholder="Cerca…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 text-[12.5px] bg-app-input-bg text-app-fg border border-app-input-border rounded-lg focus:outline-2 focus:outline-app-muted placeholder:text-app-muted"
+          className="glass-input w-full pl-8 pr-3 py-1.5 text-[12.5px] rounded-lg focus:outline-2 focus:outline-app-muted"
         />
       </div>
 
