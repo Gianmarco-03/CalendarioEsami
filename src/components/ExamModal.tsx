@@ -3,6 +3,7 @@ import type { Exam, ExamKind, ExamInput, DateRangeInput } from "../types";
 import { useExams } from "../state";
 import { useToast } from "../toast";
 import { Modal } from "./Modal";
+import { durationOptions } from "../study-time";
 import { Calendar as CalendarIcon, FolderKanban, X as XIcon, Plus } from "lucide-react";
 
 const PALETTE = [
@@ -24,6 +25,7 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
   const [kind, setKind] = useState<ExamKind>(initialKind);
   const [name, setName] = useState("");
   const [color, setColor] = useState(PALETTE[0]);
+  const [defaultMinutes, setDefaultMinutes] = useState<number>(60);
   const [appelli, setAppelli] = useState<string[]>([""]);
   const [ranges, setRanges] = useState<DateRangeInput[]>([{ start: "", end: "" }]);
 
@@ -33,11 +35,13 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
       setKind(editing.kind);
       setName(editing.name);
       setColor(editing.color);
+      setDefaultMinutes(editing.defaultStudyMinutes);
       setAppelli(editing.appelli.length ? editing.appelli.map((a) => a.date) : [""]);
       setRanges(editing.ranges.length ? editing.ranges.map((r) => ({ start: r.start, end: r.end })) : [{ start: "", end: "" }]);
     } else {
       setKind(initialKind);
       setName("");
+      setDefaultMinutes(60);
       const used = new Set(exams.map((e) => e.color));
       setColor(PALETTE.find((c) => !used.has(c)) ?? PALETTE[exams.length % PALETTE.length]);
       setAppelli([""]);
@@ -76,6 +80,7 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
       color,
       kind,
       passed: editing?.passed ?? false,
+      defaultStudyMinutes: defaultMinutes,
       appelli: isProj ? [] : cleanAppelli,
       ranges: isProj ? cleanRanges : [],
     };
@@ -149,6 +154,25 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
             />
           ))}
         </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-[11px] font-bold text-[#6b7280] uppercase tracking-wide mb-1.5">
+          Tempo di studio giornaliero
+        </label>
+        <select
+          value={defaultMinutes}
+          onChange={(e) => setDefaultMinutes(parseInt(e.target.value, 10))}
+          className="w-full px-2.5 py-2 border border-app-input-border rounded-lg text-[13px] bg-app-input-bg text-app-fg focus:outline-2 focus:outline-app-muted"
+        >
+          {durationOptions().map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <p className="mt-1 text-[10.5px] text-app-muted leading-relaxed">
+          I minuti effettivi sono <code>t/n</code>, dove <code>n</code> è il numero di esami
+          attivi (esami in studio + progetti in corso) quel giorno.
+        </p>
       </div>
 
       {!isProj && (
