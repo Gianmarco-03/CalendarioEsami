@@ -6,8 +6,17 @@ import { ExamModal } from "./components/ExamModal";
 import { Calendar } from "./components/Calendar";
 import { DayModal } from "./components/DayModal";
 import { ImportModal } from "./components/ImportModal";
+import { StatsView } from "./components/StatsView";
+import { TodoView } from "./components/TodoView";
+import type { AppSection } from "./components/SectionSwitcher";
 import type { ExamKind } from "./types";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, BarChart3, ListTodo } from "lucide-react";
+
+const SECTION_META: Record<AppSection, { label: string; Icon: typeof CalendarDays }> = {
+  calendar: { label: "Calendario Appelli e Studio", Icon: CalendarDays },
+  stats:    { label: "Statistiche",                 Icon: BarChart3 },
+  todo:     { label: "To-do",                       Icon: ListTodo },
+};
 
 function Shell() {
   const { exams, initError } = useExams();
@@ -16,6 +25,7 @@ function Shell() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [section, setSection] = useState<AppSection>("calendar");
 
   const editing = editingId !== null ? exams.find((e) => e.id === editingId) ?? null : null;
 
@@ -47,12 +57,23 @@ function Shell() {
   return (
     <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden">
       <div className="h-full w-full flex gap-4">
-        <Sidebar onAdd={openCreate} onEdit={openEdit} onImport={() => setImportOpen(true)} />
+        <Sidebar
+          section={section}
+          onSectionChange={setSection}
+          onAdd={openCreate}
+          onEdit={openEdit}
+          onImport={() => setImportOpen(true)}
+        />
         <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-white border border-app-border shadow-sm p-4">
           <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
-            <CalendarDays size={18} /> Calendario Appelli &amp; Studio
+            {(() => { const I = SECTION_META[section].Icon; return <I size={18} />; })()}
+            {SECTION_META[section].label}
           </h1>
-          <Calendar onDayClick={setDayKey} />
+          <div key={section} className="animate-[fade-in_220ms_ease-out]">
+            {section === "calendar" && <Calendar onDayClick={setDayKey} />}
+            {section === "stats" && <StatsView />}
+            {section === "todo" && <TodoView />}
+          </div>
         </main>
       </div>
       <ExamModal

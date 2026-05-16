@@ -1,20 +1,24 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
 import { Plus, Upload, Search } from "lucide-react";
+import { SectionSwitcher, type AppSection } from "./SectionSwitcher";
 
 interface SidebarProps {
+  section: AppSection;
+  onSectionChange: (s: AppSection) => void;
   onAdd: (kind: "esame" | "progetto") => void;
   onEdit: (id: number) => void;
   onImport: () => void;
 }
 
-export function Sidebar({ onAdd, onEdit, onImport }: SidebarProps) {
+export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: SidebarProps) {
   const { exams, loading, searchQuery, setSearchQuery } = useExams();
   const active = exams.filter((e) => !e.passed);
   const passed = exams.filter((e) => e.passed);
 
   return (
     <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl bg-white border border-app-border shadow-sm p-4 flex flex-col">
+      <SectionSwitcher active={section} onChange={onSectionChange} />
       <h2 className="font-semibold text-[15px] mb-1">Esami e progetti</h2>
       <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
         Clicca un giorno per segnare lo studio. I <b>progetti</b> sono esami che durano più giorni.
