@@ -16,32 +16,44 @@ export interface StudyDay {
   minutes: number | null;
 }
 
-export interface Exam {
+export interface EsameData {
   id: number;
   name: string;
   color: string;
-  kind: ExamKind;
   passed: boolean;
   defaultStudyMinutes: number;
   appelli: Appello[];
-  ranges: ProjectRange[];
   studyDays: StudyDay[];
 }
+
+export interface ProgettoData extends EsameData {
+  ranges: ProjectRange[];
+}
+
+export type Esame    = EsameData    & { kind: "esame" };
+export type Progetto = ProgettoData & { kind: "progetto" };
+export type Exam     = Esame | Progetto;
 
 export interface DateRangeInput {
   start: string;
   end: string;
 }
 
-export interface ExamInput {
+export interface EsameInputData {
   name: string;
   color: string;
-  kind: ExamKind;
   passed: boolean;
   defaultStudyMinutes: number;
   appelli: string[];
+}
+
+export interface ProgettoInputData extends EsameInputData {
   ranges: DateRangeInput[];
 }
+
+export type EsameInput    = EsameInputData    & { kind: "esame" };
+export type ProgettoInput = ProgettoInputData & { kind: "progetto" };
+export type ExamInput     = EsameInput | ProgettoInput;
 
 export interface ImportReport {
   inserted: number;
