@@ -8,6 +8,7 @@ import { DayModal } from "./components/DayModal";
 import { ImportModal } from "./components/ImportModal";
 import { StatsView } from "./components/StatsView";
 import { TodoView } from "./components/TodoView";
+import { SettingsModal } from "./components/SettingsModal";
 import type { AppSection } from "./components/SectionSwitcher";
 import type { ExamKind } from "./types";
 import { CalendarDays, BarChart3, ListTodo } from "lucide-react";
@@ -25,6 +26,7 @@ function Shell() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [section, setSection] = useState<AppSection>("calendar");
 
   const editing = editingId !== null ? exams.find((e) => e.id === editingId) ?? null : null;
@@ -63,6 +65,7 @@ function Shell() {
           onAdd={openCreate}
           onEdit={openEdit}
           onImport={() => setImportOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
         <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-app-card border border-app-border shadow-sm p-4">
           <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
@@ -84,6 +87,7 @@ function Shell() {
       />
       <DayModal open={dayKey !== null} dayKey={dayKey} onClose={() => setDayKey(null)} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

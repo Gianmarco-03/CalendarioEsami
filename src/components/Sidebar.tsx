@@ -1,6 +1,6 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
-import { Plus, Upload, Search } from "lucide-react";
+import { Plus, Upload, Search, Settings as SettingsIcon } from "lucide-react";
 import { SectionSwitcher, type AppSection } from "./SectionSwitcher";
 
 interface SidebarProps {
@@ -9,9 +9,10 @@ interface SidebarProps {
   onAdd: (kind: "esame" | "progetto") => void;
   onEdit: (id: number) => void;
   onImport: () => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: SidebarProps) {
+export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onOpenSettings }: SidebarProps) {
   const { exams, loading, searchQuery, setSearchQuery } = useExams();
   const active = exams.filter((e) => !e.passed);
   const passed = exams.filter((e) => e.passed);
@@ -77,7 +78,15 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
         </div>
       )}
 
-      <div className="mt-auto pt-3" />
+      <div className="mt-auto pt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label="Impostazioni"
+          title="Impostazioni"
+          className="p-2 rounded-lg text-app-muted hover:bg-app-hover hover:text-app-fg transition-colors"
+        ><SettingsIcon size={16} /></button>
+      </div>
     </aside>
   );
 }
