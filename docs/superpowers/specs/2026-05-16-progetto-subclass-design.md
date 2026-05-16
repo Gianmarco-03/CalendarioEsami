@@ -382,28 +382,191 @@ function buildActivities(D, exams) {
 
 `buildBanners` accetta `Exam` (entrambi i kind possono avere appelli).
 
-## 9. ExamModal — sempre mostra appelli, ranges solo per progetto
+## 9. ExamModal — lista unificata con checkbox per riga
 
-- Segmented control "Esame / Progetto" resta in cima al modale.
-- Sezione **Appelli** sempre visibile (sia per Esame sia per Progetto).
-- Sezione **Periodi** visibile solo quando `kind === "progetto"`.
-- Tempo di studio + nome + colore sempre visibili.
+**Cambio rispetto alla versione precedente:** elimino il segmented control "Esame / Progetto" in cima. Le sezioni "Appelli" e "Periodi" si fondono in una **singola lista** dove ogni riga ha un checkbox che la trasforma da appello (singola data) in periodo (data inizio + fine). Il `kind` (Esame vs Progetto) viene **derivato** dalla composizione delle righe: se ≥1 riga è "periodo" → kind = `progetto`, altrimenti `esame`.
 
-Costruzione di `ExamInput` in `handleSave`:
+### 9.1 Struttura del modale
+
+- Titolo: derivato dalla composizione corrente delle entries.
+  - 0 entries "periodo" → "Nuovo esame" / "Modifica esame"
+  - ≥1 entry "periodo" → "Nuovo progetto" / "Modifica progetto"
+- **Nome** (input testo)
+- **Colore** (palette swatches)
+- **Tempo di studio giornaliero** (dropdown)
+- **Date d'esame / Periodi** (lista unificata):
+  - Ogni riga (in ordine):
+    - Checkbox a sinistra, label "Periodo"
+    - Input(s) di data:
+      - Checkbox OFF → 1 `<input type="date">` (singola data = appello)
+      - Checkbox ON → 2 `<input type="date">` affiancati (inizio + fine = periodo)
+    - Bottone `✕` rimuovi a destra
+  - Bottone link "+ Aggiungi data" sotto la lista
+- **Elimina** (solo edit) + **Salva**
+
+### 9.2 Stato React (`src/components/ExamModal.tsx`)
 
 ```typescript
-const baseData = {
-  name: trimmed,
-  color,
-  passed: editing?.passed ?? false,
-  defaultStudyMinutes: defaultMinutes,
-  appelli: cleanAppelli,
-};
+type Entry =
+  | { uid: string; type: "appello"; date: string }
+  | { uid: string; type: "range"; start: string; end: string };
 
-const input: ExamInput = kind === "progetto"
-  ? { kind: "progetto", ...baseData, ranges: cleanRanges }
-  : { kind: "esame", ...baseData };
+const [entries, setEntries] = useState<Entry[]>([]);
+const [name, setName] = useState("");
+const [color, setColor] = useState(PALETTE[0]);
+const [defaultMinutes, setDefaultMinutes] = useState(60);
+// NIENTE useState<ExamKind>: il kind è derivato.
+
+// Derive
+const derivedKind: ExamKind = entries.some((e) => e.type === "range")
+  ? "progetto"
+  : "esame";
 ```
+
+`uid` è un ID locale (es. `Math.random().toString(36).slice(2,9)`) per la stable key React; **non viene serializzato** verso il DB (gli ID veri vengono ricreati dal Rust dopo l'insert).
+
+### 9.3 Inizializzazione
+
+Su create (`!editing`):
+- `initialKind === "esame"` → `entries = [{ uid, type: "appello", date: "" }]`
+- `initialKind === "progetto"` → `entries = [{ uid, type: "range", start: "", end: "" }]`
+
+(Il prop `initialKind` resta utile come hint ai bottoni "+ Esame" / "+ Progetto" della Sidebar.)
+
+Su edit (`editing` definito):
+
+```typescript
+const appelliEntries: Entry[] = editing.appelli.map((a) => ({
+  uid: `app-${a.id}`,
+  type: "appello",
+  date: a.date,
+}));
+const rangeEntries: Entry[] = isProgetto(editing)
+  ? editing.ranges.map((r) => ({
+      uid: `rng-${r.id}`,
+      type: "range",
+      start: r.start,
+      end: r.end,
+    }))
+  : [];
+setEntries([...appelliEntries, ...rangeEntries]);
+```
+
+### 9.4 Toggle checkbox (cambio di tipo riga)
+
+```typescript
+function toggleEntryType(uid: string) {
+  setEntries((prev) => prev.map((e) => {
+    if (e.uid !== uid) return e;
+    if (e.type === "appello") {
+      // appello → range: preserva la data come start
+      return { uid, type: "range", start: e.date, end: "" };
+    } else {
+      // range → appello: tiene lo start come date
+      return { uid, type: "appello", date: e.start };
+    }
+  }));
+}
+```
+
+### 9.5 Save handler
+
+```typescript
+const handleSave = async () => {
+  const trimmed = name.trim();
+  if (!trimmed) { toast.error("Inserisci un nome."); return; }
+
+  const cleanAppelli = entries
+    .filter((e): e is Extract<Entry, { type: "appello" }> => e.type === "appello" && !!e.date)
+    .map((e) => e.date)
+    .sort();
+
+  const cleanRanges = entries
+    .filter((e): e is Extract<Entry, { type: "range" }> => e.type === "range" && !!e.start)
+    .map((e) => {
+      let start = e.start;
+      let end = e.end || e.start;
+      if (end < start) [start, end] = [end, start];
+      return { start, end };
+    })
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  const kind: ExamKind = cleanRanges.length > 0 ? "progetto" : "esame";
+
+  const baseInput = {
+    name: trimmed,
+    color,
+    passed: editing?.passed ?? false,
+    defaultStudyMinutes: defaultMinutes,
+    appelli: cleanAppelli,
+  };
+
+  const input: ExamInput = kind === "progetto"
+    ? { kind: "progetto", ...baseInput, ranges: cleanRanges }
+    : { kind: "esame", ...baseInput };
+
+  const result = editing
+    ? await update(editing.id, input)
+    : await create(input);
+  if (result) { toast.success(editing ? "Modifiche salvate" : "Aggiunto"); onClose(); }
+};
+```
+
+### 9.6 Rendering di una riga (esempio)
+
+```tsx
+{entries.map((entry) => (
+  <div key={entry.uid} className="flex items-center gap-2 mb-2">
+    <label className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-app-muted">
+      <input
+        type="checkbox"
+        checked={entry.type === "range"}
+        onChange={() => toggleEntryType(entry.uid)}
+        className="w-3.5 h-3.5"
+      />
+      Periodo
+    </label>
+
+    {entry.type === "appello" ? (
+      <input
+        type="date"
+        value={entry.date}
+        onChange={(ev) => updateEntry(entry.uid, { date: ev.target.value })}
+        className="flex-1 px-2 py-1.5 text-[12.5px] glass-input rounded-lg"
+      />
+    ) : (
+      <>
+        <input
+          type="date"
+          value={entry.start}
+          onChange={(ev) => updateEntry(entry.uid, { start: ev.target.value })}
+          className="flex-1 min-w-0 px-2 py-1.5 text-[12.5px] glass-input rounded-lg"
+        />
+        <span className="text-[10px] text-app-muted shrink-0">→</span>
+        <input
+          type="date"
+          value={entry.end}
+          onChange={(ev) => updateEntry(entry.uid, { end: ev.target.value })}
+          className="flex-1 min-w-0 px-2 py-1.5 text-[12.5px] glass-input rounded-lg"
+        />
+      </>
+    )}
+
+    <button
+      type="button"
+      onClick={() => removeEntry(entry.uid)}
+      className="p-1 text-app-muted hover:bg-app-hover rounded"
+      aria-label="Rimuovi"
+    ><XIcon size={14} /></button>
+  </div>
+))}
+```
+
+### 9.7 Validazione lato FE (pre-invio)
+
+Nessuna nuova validazione: la combinazione corrente di filtri (`!!e.date`, `!!e.start`) scarta righe vuote. Se l'utente ha solo una riga vuota, l'input arriva al Rust con appelli/ranges vuoti — il backend permette un esame "placeholder" (kind = esame, nessun appello, nessun range), che è accettato.
+
+Caso "Un progetto richiede almeno un periodo" del backend: ora non scatta mai perché se ranges è vuoto, il kind diventa esame.
 
 ## 10. ExamRow + DayModal
 
@@ -459,3 +622,7 @@ E la costruzione di `ExamInput` segue la nuova forma enum.
 | DayCell priorità | range > study_day per stesso esame |
 | Migration schema | non necessaria |
 | Backward compat import | sì, type="progetto" con appelli ora funziona |
+| ExamModal segmented control | RIMOSSO — kind derivato dalle entries |
+| Lista appelli/periodi | unificata, checkbox "Periodo" per riga |
+| Titolo modale | dinamico: "esame"/"progetto" basato su entries correnti |
+| Toggle appello ↔ periodo | preserva la data (start = data appello quando si attiva il checkbox) |
