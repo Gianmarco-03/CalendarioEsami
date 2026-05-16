@@ -1,6 +1,7 @@
 import type { Exam } from "../types";
 import type { MonthGridDay } from "../date";
 import { inRange } from "../date";
+import { isProgetto } from "../progetto";
 import { Cpu, BrainCircuit } from "lucide-react";
 
 interface DayCellProps {
@@ -32,16 +33,13 @@ function buildActivities(dayKey: string, exams: Exam[]): Activity[] {
   const projects: Activity[] = [];
   const studies: Activity[] = [];
   for (const e of exams) {
-    if (e.kind === "progetto") {
-      const inAnyRange = e.ranges.some((r) => inRange(dayKey, r.start, r.end));
-      if (inAnyRange) {
-        projects.push({ kind: "project", color: e.color, examId: e.id, examName: e.name });
-      }
-    } else {
-      const hasStudy = e.studyDays.some((s) => s.date === dayKey);
-      if (hasStudy) {
-        studies.push({ kind: "study", color: e.color, examId: e.id, examName: e.name });
-      }
+    if (e.passed) continue;
+    const isInRange = isProgetto(e) && e.ranges.some((r) => inRange(dayKey, r.start, r.end));
+    const hasStudy = e.studyDays.some((s) => s.date === dayKey);
+    if (isInRange) {
+      projects.push({ kind: "project", color: e.color, examId: e.id, examName: e.name });
+    } else if (hasStudy) {
+      studies.push({ kind: "study", color: e.color, examId: e.id, examName: e.name });
     }
   }
   projects.sort((a, b) => a.examName.localeCompare(b.examName));
@@ -52,7 +50,7 @@ function buildActivities(dayKey: string, exams: Exam[]): Activity[] {
 function buildBanners(dayKey: string, exams: Exam[]): BannerItem[] {
   const out: BannerItem[] = [];
   for (const e of exams) {
-    if (e.kind !== "esame") continue;
+    if (e.passed) continue;
     for (const a of e.appelli) {
       if (a.date === dayKey) {
         out.push({ color: e.color, examName: e.name });
@@ -69,7 +67,8 @@ function computeProjectEdges(dayKey: string, exams: Exam[]): ProjectEdges {
   let startColor: string | null = null;
   let endColor: string | null = null;
   for (const e of exams) {
-    if (e.kind !== "progetto") continue;
+    if (e.passed) continue;
+    if (!isProgetto(e)) continue;
     for (const r of e.ranges) {
       if (r.start === dayKey) { start = true; startColor = e.color; }
       if (r.end === dayKey)   { end = true;   endColor = e.color; }
