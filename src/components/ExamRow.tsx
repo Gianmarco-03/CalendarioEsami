@@ -40,7 +40,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
 
   return (
     <div className={
-      "flex items-center gap-2 p-2 rounded-lg border border-app-border mb-1.5 bg-app-soft " +
+      "lift-hover flex items-center gap-2 p-2 rounded-lg border border-app-border mb-1.5 bg-app-soft " +
       (exam.passed ? "opacity-65" : "")
     }>
       <span
