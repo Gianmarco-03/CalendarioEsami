@@ -57,20 +57,32 @@ pub fn import_artifact_json(conn: &mut Connection, payload: &str) -> Result<Impo
         }).collect();
         let appelli: Vec<String> = ae.appelli.iter().map(|a| a.date.clone()).collect();
 
-        let input = ExamInput {
+        let base = EsameInputData {
             name: ae.name.clone(),
             color: ae.color.clone(),
-            kind,
             passed: ae.passed,
             default_study_minutes: ae.default_study_minutes,
             appelli,
-            ranges,
+        };
+        let input: ExamInput = match kind {
+            ExamKind::Esame => {
+                if !ranges.is_empty() {
+                    report.skipped += 1;
+                    report.errors.push(format!("'{}': type=esame con ranges, scartato", ae.name));
+                    continue;
+                }
+                ExamInput::Esame(base)
+            }
+            ExamKind::Progetto => ExamInput::Progetto(ProgettoInputData {
+                esame: base,
+                ranges,
+            }),
         };
 
         match exams::create(conn, &input) {
             Ok(exam) => {
                 for d in &ae.study_days {
-                    if let Err(e) = exams::toggle_study_day(conn, exam.id, d) {
+                    if let Err(e) = exams::toggle_study_day(conn, exam.id(), d) {
                         report.errors.push(format!("'{}': study day {d}: {e}", ae.name));
                     }
                 }
@@ -122,10 +134,11 @@ mod tests {
         assert_eq!(report.skipped, 1);
         let list = exams::list(&conn).unwrap();
         assert_eq!(list.len(), 2);
-        let neuro = list.iter().find(|e| e.name == "Neuro").unwrap();
-        assert_eq!(neuro.appelli.len(), 1);
-        assert_eq!(neuro.study_days.len(), 1);
-        assert_eq!(neuro.study_days[0].date, "2026-06-01");
+        let neuro = list.iter().find(|e| e.base().name == "Neuro").unwrap();
+        assert_eq!(neuro.base().appelli.len(), 1);
+        let sd = &neuro.base().study_days;
+        assert_eq!(sd.len(), 1);
+        assert_eq!(sd[0].date, "2026-06-01");
     }
 
     #[test]

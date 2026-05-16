@@ -48,28 +48,103 @@ pub struct StudyDay {
     pub minutes: Option<i32>,
 }
 
+// === Esame (base) ===
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Exam {
+pub struct EsameData {
     pub id: i64,
     pub name: String,
     pub color: String,
-    pub kind: ExamKind,
     pub passed: bool,
     pub default_study_minutes: i32,
     pub appelli: Vec<Appello>,
-    pub ranges: Vec<ProjectRange>,
     pub study_days: Vec<StudyDay>,
 }
 
+// === Progetto (extends Esame with ranges) ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgettoData {
+    #[serde(flatten)]
+    pub esame: EsameData,
+    pub ranges: Vec<ProjectRange>,
+}
+
+// === Exam top-level discriminated union ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum Exam {
+    Esame(EsameData),
+    Progetto(ProgettoData),
+}
+
+impl Exam {
+    pub fn base(&self) -> &EsameData {
+        match self {
+            Exam::Esame(b) => b,
+            Exam::Progetto(p) => &p.esame,
+        }
+    }
+    pub fn id(&self) -> i64 { self.base().id }
+    pub fn kind_str(&self) -> &'static str {
+        match self {
+            Exam::Esame(_) => "esame",
+            Exam::Progetto(_) => "progetto",
+        }
+    }
+    pub fn ranges(&self) -> &[ProjectRange] {
+        match self {
+            Exam::Esame(_) => &[],
+            Exam::Progetto(p) => &p.ranges,
+        }
+    }
+}
+
+// === Inputs mirror the same hierarchy ===
+
 #[derive(Debug, Clone, Deserialize)]
-pub struct ExamInput {
+pub struct EsameInputData {
     pub name: String,
     pub color: String,
-    pub kind: ExamKind,
     pub passed: bool,
     pub default_study_minutes: i32,
     pub appelli: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProgettoInputData {
+    #[serde(flatten)]
+    pub esame: EsameInputData,
     pub ranges: Vec<DateRange>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum ExamInput {
+    Esame(EsameInputData),
+    Progetto(ProgettoInputData),
+}
+
+impl ExamInput {
+    pub fn base(&self) -> &EsameInputData {
+        match self {
+            ExamInput::Esame(b) => b,
+            ExamInput::Progetto(p) => &p.esame,
+        }
+    }
+    pub fn kind_str(&self) -> &'static str {
+        match self {
+            ExamInput::Esame(_) => "esame",
+            ExamInput::Progetto(_) => "progetto",
+        }
+    }
+    pub fn ranges(&self) -> &[DateRange] {
+        match self {
+            ExamInput::Esame(_) => &[],
+            ExamInput::Progetto(p) => &p.ranges,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -123,33 +198,24 @@ pub fn validate_range(r: &DateRange) -> Result<(), String> {
 }
 
 pub fn validate_input(input: &ExamInput) -> Result<String, String> {
-    let name = validate_name(&input.name)?;
-    validate_color(&input.color)?;
-    if input.default_study_minutes < 0 || input.default_study_minutes > 1440 {
+    let base = input.base();
+    let name = validate_name(&base.name)?;
+    validate_color(&base.color)?;
+    if base.default_study_minutes < 0 || base.default_study_minutes > 1440 {
         return Err(format!(
             "Tempo di studio predefinito non valido: {} (0..1440)",
-            input.default_study_minutes
+            base.default_study_minutes
         ));
     }
-    for d in &input.appelli {
+    for d in &base.appelli {
         validate_date(d)?;
     }
-    for r in &input.ranges {
-        validate_range(r)?;
-    }
-    match input.kind {
-        ExamKind::Esame => {
-            if !input.ranges.is_empty() {
-                return Err("Un esame non può avere ranges (sono solo per i progetti)".into());
-            }
+    if let ExamInput::Progetto(p) = input {
+        for r in &p.ranges {
+            validate_range(r)?;
         }
-        ExamKind::Progetto => {
-            if !input.appelli.is_empty() {
-                return Err("Un progetto non può avere appelli (sono solo per gli esami)".into());
-            }
-            if input.ranges.is_empty() {
-                return Err("Un progetto richiede almeno un periodo".into());
-            }
+        if p.ranges.is_empty() {
+            return Err("Un progetto richiede almeno un periodo".into());
         }
     }
     Ok(name)
@@ -193,67 +259,59 @@ mod tests {
     }
 
     #[test]
-    fn esame_with_ranges_rejected() {
-        let i = ExamInput {
-            name: "x".into(),
-            color: "#112233".into(),
-            kind: ExamKind::Esame,
-            passed: false,
-            default_study_minutes: 60,
-            appelli: vec![],
-            ranges: vec![DateRange { start: "2026-01-01".into(), end: "2026-01-02".into() }],
-        };
-        assert!(validate_input(&i).is_err());
-    }
-
-    #[test]
     fn progetto_without_ranges_rejected() {
-        let i = ExamInput {
-            name: "x".into(),
-            color: "#112233".into(),
-            kind: ExamKind::Progetto,
-            passed: false,
-            default_study_minutes: 60,
-            appelli: vec![],
+        let i = ExamInput::Progetto(ProgettoInputData {
+            esame: EsameInputData {
+                name: "x".into(),
+                color: "#112233".into(),
+                passed: false,
+                default_study_minutes: 60,
+                appelli: vec![],
+            },
             ranges: vec![],
-        };
+        });
         assert!(validate_input(&i).is_err());
     }
 
     #[test]
-    fn progetto_with_appelli_rejected() {
-        let i = ExamInput {
-            name: "x".into(),
+    fn progetto_with_appelli_now_allowed() {
+        let i = ExamInput::Progetto(ProgettoInputData {
+            esame: EsameInputData {
+                name: "x".into(),
+                color: "#112233".into(),
+                passed: false,
+                default_study_minutes: 60,
+                appelli: vec!["2026-01-15".into()],
+            },
+            ranges: vec![DateRange { start: "2026-01-01".into(), end: "2026-01-10".into() }],
+        });
+        assert!(validate_input(&i).is_ok());
+    }
+
+    #[test]
+    fn esame_with_empty_collections_ok() {
+        let i = ExamInput::Esame(EsameInputData {
+            name: "placeholder".into(),
             color: "#112233".into(),
-            kind: ExamKind::Progetto,
             passed: false,
             default_study_minutes: 60,
-            appelli: vec!["2026-01-01".into()],
-            ranges: vec![DateRange { start: "2026-01-01".into(), end: "2026-01-02".into() }],
-        };
-        assert!(validate_input(&i).is_err());
+            appelli: vec![],
+        });
+        assert!(validate_input(&i).is_ok());
     }
 
     #[test]
     fn default_study_minutes_out_of_range_rejected() {
-        let mut i = ExamInput {
+        let make = |dsm: i32| ExamInput::Esame(EsameInputData {
             name: "x".into(),
             color: "#112233".into(),
-            kind: ExamKind::Esame,
             passed: false,
-            default_study_minutes: -1,
+            default_study_minutes: dsm,
             appelli: vec![],
-            ranges: vec![],
-        };
-        assert!(validate_input(&i).is_err());
-
-        i.default_study_minutes = 1441;
-        assert!(validate_input(&i).is_err());
-
-        i.default_study_minutes = 0;
-        assert!(validate_input(&i).is_ok());
-
-        i.default_study_minutes = 1440;
-        assert!(validate_input(&i).is_ok());
+        });
+        assert!(validate_input(&make(-1)).is_err());
+        assert!(validate_input(&make(1441)).is_err());
+        assert!(validate_input(&make(0)).is_ok());
+        assert!(validate_input(&make(1440)).is_ok());
     }
 }

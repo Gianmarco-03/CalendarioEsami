@@ -3,19 +3,20 @@ use crate::db::types::*;
 
 pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> {
     let name = validate_input(input)?;
+    let base = input.base();
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     tx.execute(
         "INSERT INTO exams (name, color, kind, passed, default_study_minutes) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![name, input.color, input.kind.as_str(), input.passed as i64, input.default_study_minutes],
+        params![name, base.color, input.kind_str(), base.passed as i64, base.default_study_minutes],
     ).map_err(|e| format!("insert exam: {e}"))?;
     let id = tx.last_insert_rowid();
-    for d in &input.appelli {
+    for d in &base.appelli {
         tx.execute(
             "INSERT INTO appelli (exam_id, date) VALUES (?1, ?2)",
             params![id, d],
         ).map_err(|e| format!("insert appello: {e}"))?;
     }
-    for r in &input.ranges {
+    for r in input.ranges() {
         tx.execute(
             "INSERT INTO project_ranges (exam_id, start_date, end_date) VALUES (?1, ?2, ?3)",
             params![id, r.start, r.end],
@@ -62,11 +63,19 @@ fn build_exam(
     passed: bool,
     default_study_minutes: i32,
 ) -> Result<Exam, String> {
-    let kind = ExamKind::from_str(kind_str)?;
     let appelli = load_appelli(conn, id)?;
-    let ranges = load_ranges(conn, id)?;
     let study_days = load_study_days(conn, id)?;
-    Ok(Exam { id, name, color, kind, passed, default_study_minutes, appelli, ranges, study_days })
+    let base = EsameData {
+        id, name, color, passed, default_study_minutes, appelli, study_days,
+    };
+    match kind_str {
+        "esame" => Ok(Exam::Esame(base)),
+        "progetto" => {
+            let ranges = load_ranges(conn, id)?;
+            Ok(Exam::Progetto(ProgettoData { esame: base, ranges }))
+        }
+        other => Err(format!("kind sconosciuto: {other}")),
+    }
 }
 
 fn load_appelli(conn: &Connection, exam_id: i64) -> Result<Vec<Appello>, String> {
@@ -117,11 +126,12 @@ pub fn set_study_day_minutes(conn: &Connection, exam_id: i64, date: &str, minute
 
 pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam, String> {
     let name = validate_input(input)?;
+    let base = input.base();
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     let changed = tx.execute(
         "UPDATE exams SET name = ?1, color = ?2, kind = ?3, passed = ?4,
                           default_study_minutes = ?5, updated_at = datetime('now') WHERE id = ?6",
-        params![name, input.color, input.kind.as_str(), input.passed as i64, input.default_study_minutes, id],
+        params![name, base.color, input.kind_str(), base.passed as i64, base.default_study_minutes, id],
     ).map_err(|e| format!("update exam: {e}"))?;
     if changed == 0 {
         return Err(format!("Esame {id} non trovato"));
@@ -130,11 +140,11 @@ pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam,
         .map_err(|e| format!("delete appelli: {e}"))?;
     tx.execute("DELETE FROM project_ranges WHERE exam_id = ?1", params![id])
         .map_err(|e| format!("delete ranges: {e}"))?;
-    for d in &input.appelli {
+    for d in &base.appelli {
         tx.execute("INSERT INTO appelli (exam_id, date) VALUES (?1, ?2)", params![id, d])
             .map_err(|e| format!("insert appello: {e}"))?;
     }
-    for r in &input.ranges {
+    for r in input.ranges() {
         tx.execute(
             "INSERT INTO project_ranges (exam_id, start_date, end_date) VALUES (?1, ?2, ?3)",
             params![id, r.start, r.end],
@@ -170,25 +180,17 @@ pub fn set_passed(conn: &Connection, id: i64, passed: bool) -> Result<(), String
 /// "Active" = `passed = 0`. Used to enforce the 4-presence-per-day cap.
 pub fn count_presences(conn: &Connection, date: &str) -> Result<usize, String> {
     crate::db::types::validate_date(date)?;
-
-    let n_studies: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM study_days sd
-         JOIN exams e ON e.id = sd.exam_id
-         WHERE sd.date = ?1 AND e.passed = 0 AND e.kind = 'esame'",
+    let n: i64 = conn.query_row(
+        "SELECT COUNT(DISTINCT e.id) FROM exams e
+         WHERE e.passed = 0 AND e.id IN (
+             SELECT exam_id FROM study_days WHERE date = ?1
+             UNION
+             SELECT exam_id FROM project_ranges WHERE ?1 BETWEEN start_date AND end_date
+         )",
         params![date],
         |r| r.get(0),
-    ).map_err(|e| format!("count studies: {e}"))?;
-
-    let n_projects: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM project_ranges pr
-         JOIN exams e ON e.id = pr.exam_id
-         WHERE pr.start_date <= ?1 AND pr.end_date >= ?1
-           AND e.passed = 0 AND e.kind = 'progetto'",
-        params![date],
-        |r| r.get(0),
-    ).map_err(|e| format!("count projects: {e}"))?;
-
-    Ok((n_studies + n_projects) as usize)
+    ).map_err(|e| format!("count presences: {e}"))?;
+    Ok(n as usize)
 }
 
 pub fn toggle_study_day(conn: &Connection, exam_id: i64, date: &str) -> Result<bool, String> {
@@ -206,12 +208,12 @@ pub fn toggle_study_day(conn: &Connection, exam_id: i64, date: &str) -> Result<b
         Ok(false)
     } else {
         let exam_exists: bool = conn.query_row(
-            "SELECT 1 FROM exams WHERE id = ?1 AND kind = 'esame'",
+            "SELECT 1 FROM exams WHERE id = ?1",
             params![exam_id],
             |_| Ok(true),
         ).unwrap_or(false);
         if !exam_exists {
-            return Err(format!("Esame {exam_id} non esistente o è un progetto"));
+            return Err(format!("Esame {exam_id} non esistente"));
         }
         // Enforce the 4-activity-per-day cap before adding.
         let current = count_presences(conn, date)?;
@@ -255,50 +257,62 @@ mod tests {
     use crate::db::open_in_memory;
 
     pub(super) fn sample_esame() -> ExamInput {
-        ExamInput {
+        ExamInput::Esame(EsameInputData {
             name: "Neuroanatomia".into(),
             color: "#E8543F".into(),
-            kind: ExamKind::Esame,
             passed: false,
             default_study_minutes: 60,
             appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
-            ranges: vec![],
-        }
+        })
     }
 
     pub(super) fn sample_progetto() -> ExamInput {
-        ExamInput {
-            name: "Tesina Fisiologia".into(),
-            color: "#27AE60".into(),
-            kind: ExamKind::Progetto,
+        ExamInput::Progetto(ProgettoInputData {
+            esame: EsameInputData {
+                name: "Tesina Fisiologia".into(),
+                color: "#27AE60".into(),
+                passed: false,
+                default_study_minutes: 60,
+                appelli: vec![],
+            },
+            ranges: vec![DateRange { start: "2026-05-01".into(), end: "2026-05-15".into() }],
+        })
+    }
+
+    fn esame_input_with(mut f: impl FnMut(&mut EsameInputData)) -> ExamInput {
+        let mut data = EsameInputData {
+            name: "Neuroanatomia".into(),
+            color: "#E8543F".into(),
             passed: false,
             default_study_minutes: 60,
-            appelli: vec![],
-            ranges: vec![DateRange { start: "2026-05-01".into(), end: "2026-05-15".into() }],
-        }
+            appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
+        };
+        f(&mut data);
+        ExamInput::Esame(data)
     }
 
     #[test]
     fn create_and_get_esame() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        assert_eq!(e.name, "Neuroanatomia");
-        assert_eq!(e.kind, ExamKind::Esame);
-        assert_eq!(e.appelli.len(), 2);
-        assert_eq!(e.appelli[0].date, "2026-06-15");
-        assert!(e.ranges.is_empty());
-        assert!(e.study_days.is_empty());
-        assert!(!e.passed);
+        let base = e.base();
+        assert_eq!(base.name, "Neuroanatomia");
+        assert_eq!(e.kind_str(), "esame");
+        assert_eq!(base.appelli.len(), 2);
+        assert_eq!(base.appelli[0].date, "2026-06-15");
+        assert!(e.ranges().is_empty());
+        assert!(base.study_days.is_empty());
+        assert!(!base.passed);
     }
 
     #[test]
     fn create_progetto() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_progetto()).unwrap();
-        assert_eq!(e.kind, ExamKind::Progetto);
-        assert_eq!(e.ranges.len(), 1);
-        assert_eq!(e.ranges[0].start, "2026-05-01");
-        assert_eq!(e.ranges[0].end, "2026-05-15");
+        assert_eq!(e.kind_str(), "progetto");
+        assert_eq!(e.ranges().len(), 1);
+        assert_eq!(e.ranges()[0].start, "2026-05-01");
+        assert_eq!(e.ranges()[0].end, "2026-05-15");
     }
 
     #[test]
@@ -308,19 +322,20 @@ mod tests {
         create(&mut conn, &sample_esame()).unwrap();
         let list = list(&conn).unwrap();
         assert_eq!(list.len(), 2);
-        assert_eq!(list[0].name, "Neuroanatomia");
-        assert_eq!(list[1].name, "Tesina Fisiologia");
+        assert_eq!(list[0].base().name, "Neuroanatomia");
+        assert_eq!(list[1].base().name, "Tesina Fisiologia");
     }
 
     #[test]
     fn create_rejects_invalid_input() {
         let mut conn = open_in_memory().unwrap();
-        let bad = ExamInput {
-            name: "".into(), color: "#000000".into(),
-            kind: ExamKind::Esame, passed: false,
+        let bad = ExamInput::Esame(EsameInputData {
+            name: "".into(),
+            color: "#000000".into(),
+            passed: false,
             default_study_minutes: 60,
-            appelli: vec![], ranges: vec![],
-        };
+            appelli: vec![],
+        });
         assert!(create(&mut conn, &bad).is_err());
     }
 
@@ -328,13 +343,15 @@ mod tests {
     fn update_replaces_appelli() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        let mut next = sample_esame();
-        next.name = "Neuroanat. (rinominato)".into();
-        next.appelli = vec!["2026-09-01".into()];
-        let updated = update(&mut conn, e.id, &next).unwrap();
-        assert_eq!(updated.name, "Neuroanat. (rinominato)");
-        assert_eq!(updated.appelli.len(), 1);
-        assert_eq!(updated.appelli[0].date, "2026-09-01");
+        let next = esame_input_with(|d| {
+            d.name = "Neuroanat. (rinominato)".into();
+            d.appelli = vec!["2026-09-01".into()];
+        });
+        let updated = update(&mut conn, e.id(), &next).unwrap();
+        let ub = updated.base();
+        assert_eq!(ub.name, "Neuroanat. (rinominato)");
+        assert_eq!(ub.appelli.len(), 1);
+        assert_eq!(ub.appelli[0].date, "2026-09-01");
     }
 
     #[test]
@@ -343,11 +360,12 @@ mod tests {
         let e = create(&mut conn, &sample_esame()).unwrap();
         conn.execute(
             "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
-            params![e.id, "2026-06-01"],
+            params![e.id(), "2026-06-01"],
         ).unwrap();
-        let updated = update(&mut conn, e.id, &sample_esame()).unwrap();
-        assert_eq!(updated.study_days.len(), 1);
-        assert_eq!(updated.study_days[0].date, "2026-06-01");
+        let updated = update(&mut conn, e.id(), &sample_esame()).unwrap();
+        let sd = &updated.base().study_days;
+        assert_eq!(sd.len(), 1);
+        assert_eq!(sd[0].date, "2026-06-01");
     }
 
     #[test]
@@ -356,9 +374,9 @@ mod tests {
         let e = create(&mut conn, &sample_esame()).unwrap();
         conn.execute(
             "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
-            params![e.id, "2026-06-01"],
+            params![e.id(), "2026-06-01"],
         ).unwrap();
-        delete(&conn, e.id).unwrap();
+        delete(&conn, e.id()).unwrap();
         let n_app: i64 = conn.query_row("SELECT COUNT(*) FROM appelli", [], |r| r.get(0)).unwrap();
         let n_sd:  i64 = conn.query_row("SELECT COUNT(*) FROM study_days", [], |r| r.get(0)).unwrap();
         assert_eq!(n_app, 0);
@@ -375,51 +393,45 @@ mod tests {
     fn set_passed_toggles() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        set_passed(&conn, e.id, true).unwrap();
-        assert!(get_by_id(&conn, e.id).unwrap().passed);
-        set_passed(&conn, e.id, false).unwrap();
-        assert!(!get_by_id(&conn, e.id).unwrap().passed);
+        set_passed(&conn, e.id(), true).unwrap();
+        assert!(get_by_id(&conn, e.id()).unwrap().base().passed);
+        set_passed(&conn, e.id(), false).unwrap();
+        assert!(!get_by_id(&conn, e.id()).unwrap().base().passed);
     }
 
     #[test]
     fn toggle_study_day_on_then_off() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        assert!(toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
-        let days = get_by_id(&conn, e.id).unwrap().study_days;
+        assert!(toggle_study_day(&conn, e.id(), "2026-06-01").unwrap());
+        let after = get_by_id(&conn, e.id()).unwrap();
+        let days = &after.base().study_days;
         assert_eq!(days.len(), 1);
         assert_eq!(days[0].date, "2026-06-01");
         assert_eq!(days[0].minutes, None);
-        assert!(!toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
-        assert!(get_by_id(&conn, e.id).unwrap().study_days.is_empty());
+        assert!(!toggle_study_day(&conn, e.id(), "2026-06-01").unwrap());
+        assert!(get_by_id(&conn, e.id()).unwrap().base().study_days.is_empty());
     }
 
     #[test]
     fn set_study_day_minutes_works() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        toggle_study_day(&conn, e.id, "2026-06-01").unwrap();
-        set_study_day_minutes(&conn, e.id, "2026-06-01", Some(90)).unwrap();
-        let days = get_by_id(&conn, e.id).unwrap().study_days;
-        assert_eq!(days[0].minutes, Some(90));
-        set_study_day_minutes(&conn, e.id, "2026-06-01", None).unwrap();
-        assert_eq!(get_by_id(&conn, e.id).unwrap().study_days[0].minutes, None);
+        toggle_study_day(&conn, e.id(), "2026-06-01").unwrap();
+        set_study_day_minutes(&conn, e.id(), "2026-06-01", Some(90)).unwrap();
+        let after = get_by_id(&conn, e.id()).unwrap();
+        assert_eq!(after.base().study_days[0].minutes, Some(90));
+        set_study_day_minutes(&conn, e.id(), "2026-06-01", None).unwrap();
+        assert_eq!(get_by_id(&conn, e.id()).unwrap().base().study_days[0].minutes, None);
     }
 
     #[test]
     fn set_study_day_minutes_rejects_out_of_range() {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
-        toggle_study_day(&conn, e.id, "2026-06-01").unwrap();
-        assert!(set_study_day_minutes(&conn, e.id, "2026-06-01", Some(-1)).is_err());
-        assert!(set_study_day_minutes(&conn, e.id, "2026-06-01", Some(2000)).is_err());
-    }
-
-    #[test]
-    fn toggle_study_day_rejects_on_progetto() {
-        let mut conn = open_in_memory().unwrap();
-        let e = create(&mut conn, &sample_progetto()).unwrap();
-        assert!(toggle_study_day(&conn, e.id, "2026-06-01").is_err());
+        toggle_study_day(&conn, e.id(), "2026-06-01").unwrap();
+        assert!(set_study_day_minutes(&conn, e.id(), "2026-06-01", Some(-1)).is_err());
+        assert!(set_study_day_minutes(&conn, e.id(), "2026-06-01", Some(2000)).is_err());
     }
 
     #[test]
@@ -429,7 +441,7 @@ mod tests {
         create(&mut conn, &sample_progetto()).unwrap();
         let r = search(&conn, "tesi").unwrap();
         assert_eq!(r.len(), 1);
-        assert_eq!(r[0].name, "Tesina Fisiologia");
+        assert_eq!(r[0].base().name, "Tesina Fisiologia");
         let r2 = search(&conn, "").unwrap();
         assert_eq!(r2.len(), 2);
     }
@@ -446,28 +458,30 @@ mod tests {
 
         // Esame 1 with study on 2026-06-15
         let e1 = create(&mut conn, &sample_esame()).unwrap();
-        toggle_study_day(&conn, e1.id, "2026-06-15").unwrap();
+        toggle_study_day(&conn, e1.id(), "2026-06-15").unwrap();
 
         // Esame 2 with study on 2026-06-15
-        let mut input2 = sample_esame();
-        input2.name = "Fisiologia".into();
-        input2.color = "#2E86C1".into();
-        input2.appelli = vec!["2026-08-01".into()];
+        let input2 = esame_input_with(|d| {
+            d.name = "Fisiologia".into();
+            d.color = "#2E86C1".into();
+            d.appelli = vec!["2026-08-01".into()];
+        });
         let e2 = create(&mut conn, &input2).unwrap();
-        toggle_study_day(&conn, e2.id, "2026-06-15").unwrap();
+        toggle_study_day(&conn, e2.id(), "2026-06-15").unwrap();
 
         // Progetto covering 2026-06-15
         let proj = create(&mut conn, &sample_progetto()).unwrap();
-        let proj_input = ExamInput {
-            name: "Tesi v2".into(),
-            color: proj.color.clone(),
-            kind: ExamKind::Progetto,
-            passed: false,
-            default_study_minutes: 60,
-            appelli: vec![],
+        let proj_input = ExamInput::Progetto(ProgettoInputData {
+            esame: EsameInputData {
+                name: "Tesi v2".into(),
+                color: proj.base().color.clone(),
+                passed: false,
+                default_study_minutes: 60,
+                appelli: vec![],
+            },
             ranges: vec![DateRange { start: "2026-06-10".into(), end: "2026-06-20".into() }],
-        };
-        let _ = update(&mut conn, proj.id, &proj_input).unwrap();
+        });
+        let _ = update(&mut conn, proj.id(), &proj_input).unwrap();
 
         // Total presences on 2026-06-15: 2 studies + 1 project = 3
         assert_eq!(count_presences(&conn, "2026-06-15").unwrap(), 3);
@@ -480,27 +494,30 @@ mod tests {
         // Create 4 esami all with study on the same date
         let date = "2026-06-15";
         for i in 0..4 {
-            let mut input = sample_esame();
-            input.name = format!("Esame {}", i);
-            input.appelli = vec!["2026-08-01".into()];
-            input.color = match i {
+            let color: String = match i {
                 0 => "#E8543F".into(),
                 1 => "#2E86C1".into(),
                 2 => "#27AE60".into(),
                 _ => "#F39C12".into(),
             };
+            let input = esame_input_with(|d| {
+                d.name = format!("Esame {}", i);
+                d.appelli = vec!["2026-08-01".into()];
+                d.color = color.clone();
+            });
             let e = create(&mut conn, &input).unwrap();
-            toggle_study_day(&conn, e.id, date).unwrap();
+            toggle_study_day(&conn, e.id(), date).unwrap();
         }
         assert_eq!(count_presences(&conn, date).unwrap(), 4);
 
         // 5th esame, attempting to toggle study on same date → should fail
-        let mut input5 = sample_esame();
-        input5.name = "Esame 5".into();
-        input5.color = "#8E44AD".into();
-        input5.appelli = vec!["2026-08-01".into()];
+        let input5 = esame_input_with(|d| {
+            d.name = "Esame 5".into();
+            d.color = "#8E44AD".into();
+            d.appelli = vec!["2026-08-01".into()];
+        });
         let e5 = create(&mut conn, &input5).unwrap();
-        let result = toggle_study_day(&conn, e5.id, date);
+        let result = toggle_study_day(&conn, e5.id(), date);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.contains("Massimo 4"), "expected cap error, got: {err}");
@@ -513,18 +530,20 @@ mod tests {
         let date = "2026-06-15";
         let mut first_id = 0;
         for i in 0..4 {
-            let mut input = sample_esame();
-            input.name = format!("Esame {}", i);
-            input.appelli = vec!["2026-08-01".into()];
-            input.color = match i {
+            let color: String = match i {
                 0 => "#E8543F".into(),
                 1 => "#2E86C1".into(),
                 2 => "#27AE60".into(),
                 _ => "#F39C12".into(),
             };
+            let input = esame_input_with(|d| {
+                d.name = format!("Esame {}", i);
+                d.appelli = vec!["2026-08-01".into()];
+                d.color = color.clone();
+            });
             let e = create(&mut conn, &input).unwrap();
-            toggle_study_day(&conn, e.id, date).unwrap();
-            if i == 0 { first_id = e.id; }
+            toggle_study_day(&conn, e.id(), date).unwrap();
+            if i == 0 { first_id = e.id(); }
         }
         // Toggle OFF the first study should succeed even though cell is at cap
         let result = toggle_study_day(&conn, first_id, date);
