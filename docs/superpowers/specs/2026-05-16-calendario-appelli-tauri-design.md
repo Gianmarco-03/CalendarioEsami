@@ -305,8 +305,9 @@ Calendario-app/                    # working dir = project root
 ├── README.md
 ├── docs/
 │   └── superpowers/
-│       └── specs/
-│           ├── 2026-05-16-calendario-appelli-tauri-design.md  # questo file
+│       ├── specs/
+│       │   └── 2026-05-16-calendario-appelli-tauri-design.md  # questo file
+│       └── plans/
 │           └── 2026-05-16-calendario-appelli-tauri-plan.md    # implementation plan
 ├── src/                           # vedi §7
 └── src-tauri/

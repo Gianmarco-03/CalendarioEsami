@@ -9,6 +9,7 @@
 **Tech Stack:** Tauri 2.x · React 18 · TypeScript (strict) · Vite · Tailwind CSS v4 · Rust · rusqlite · chrono · serde
 
 **Spec:** `docs/superpowers/specs/2026-05-16-calendario-appelli-tauri-design.md`
+**This plan:** `docs/superpowers/plans/2026-05-16-calendario-appelli-tauri-plan.md`
 
 **Conventions for this plan:**
 
@@ -3644,7 +3645,7 @@ Incolla nella textarea del modal e conferma. Voci con nome già presente vengono
 ## Documentazione di design
 
 - Spec: `docs/superpowers/specs/2026-05-16-calendario-appelli-tauri-design.md`
-- Plan: `docs/superpowers/specs/2026-05-16-calendario-appelli-tauri-plan.md`
+- Plan: `docs/superpowers/plans/2026-05-16-calendario-appelli-tauri-plan.md`
 ````
 
 - [ ] **Step 2: Commit**
