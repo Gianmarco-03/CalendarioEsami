@@ -1,124 +1,152 @@
 import type { Exam } from "../types";
-import { inRange, tint } from "../date";
 import type { MonthGridDay } from "../date";
-import { Pin } from "lucide-react";
+import { inRange } from "../date";
+import { Cpu, BrainCircuit } from "lucide-react";
 
 interface DayCellProps {
   day: MonthGridDay;
-  exams: Exam[]; // active only
+  exams: Exam[]; // active only (passed=false), as filtered by parent
   onClick: (key: string) => void;
 }
 
-interface ProjectHit { exam: Exam; start: string; end: string }
+interface Activity {
+  kind: "project" | "study";
+  color: string;
+  examId: number;
+  examName: string;
+}
 
-export function DayCell({ day, exams, onClick }: DayCellProps) {
-  const studyExams = exams.filter((e) =>
-    e.kind === "esame" && e.studyDays.some((s) => s.date === day.key)
-  );
-  const projHits: ProjectHit[] = [];
+interface BannerItem {
+  color: string;
+  examName: string;
+}
+
+interface ProjectEdges {
+  start: boolean;
+  end: boolean;
+  startColor: string | null;
+  endColor: string | null;
+}
+
+function buildActivities(dayKey: string, exams: Exam[]): Activity[] {
+  const projects: Activity[] = [];
+  const studies: Activity[] = [];
   for (const e of exams) {
-    if (e.kind !== "progetto") continue;
-    for (const r of e.ranges) {
-      if (inRange(day.key, r.start, r.end)) {
-        projHits.push({ exam: e, start: r.start, end: r.end });
+    if (e.kind === "progetto") {
+      const inAnyRange = e.ranges.some((r) => inRange(dayKey, r.start, r.end));
+      if (inAnyRange) {
+        projects.push({ kind: "project", color: e.color, examId: e.id, examName: e.name });
+      }
+    } else {
+      const hasStudy = e.studyDays.some((s) => s.date === dayKey);
+      if (hasStudy) {
+        studies.push({ kind: "study", color: e.color, examId: e.id, examName: e.name });
       }
     }
   }
-  const appelliToday = exams.filter((e) =>
-    e.kind === "esame" && e.appelli.some((a) => a.date === day.key)
-  );
+  projects.sort((a, b) => a.examName.localeCompare(b.examName));
+  studies.sort((a, b) => a.examName.localeCompare(b.examName));
+  return [...projects, ...studies];
+}
 
-  const colored: Exam[] = [];
-  for (const e of studyExams) if (!colored.includes(e)) colored.push(e);
-  for (const h of projHits) if (!colored.includes(h.exam)) colored.push(h.exam);
-
-  let bg: string | undefined;
-  if (colored.length === 1) {
-    bg = tint(colored[0].color, 0.30);
-  } else if (colored.length > 1) {
-    const step = 100 / colored.length;
-    const stops = colored.map((e, i) =>
-      `${tint(e.color, 0.34)} ${i * step}% ${(i + 1) * step}%`
-    ).join(", ");
-    bg = `linear-gradient(135deg, ${stops})`;
+function buildBanners(dayKey: string, exams: Exam[]): BannerItem[] {
+  const out: BannerItem[] = [];
+  for (const e of exams) {
+    if (e.kind !== "esame") continue;
+    for (const a of e.appelli) {
+      if (a.date === dayKey) {
+        out.push({ color: e.color, examName: e.name });
+      }
+    }
   }
+  out.sort((a, b) => a.examName.localeCompare(b.examName));
+  return out;
+}
 
-  const isEmpty = colored.length === 0 && appelliToday.length === 0;
+function computeProjectEdges(dayKey: string, exams: Exam[]): ProjectEdges {
+  let start = false;
+  let end = false;
+  let startColor: string | null = null;
+  let endColor: string | null = null;
+  for (const e of exams) {
+    if (e.kind !== "progetto") continue;
+    for (const r of e.ranges) {
+      if (r.start === dayKey) { start = true; startColor = e.color; }
+      if (r.end === dayKey)   { end = true;   endColor = e.color; }
+    }
+  }
+  return { start, end, startColor, endColor };
+}
+
+export function DayCell({ day, exams, onClick }: DayCellProps) {
+  const activities = buildActivities(day.key, exams);
+  const banners = buildBanners(day.key, exams);
+  const edges = computeProjectEdges(day.key, exams);
+
+  const splitN = Math.min(activities.length, 4);
+  const visibleBanners = banners.slice(0, 2);
+  const overflowCount = banners.length - visibleBanners.length;
+
+  const classes = [
+    "cell-redesign",
+    "lift-hover",
+    "focus-visible:outline-2",
+    "focus-visible:outline-app-muted",
+    "focus-visible:outline-offset-[-2px]",
+    day.isToday ? "today" : "",
+    activities.length === 0 && banners.length === 0 ? "empty" : "",
+    edges.start ? "proj-start" : "",
+    edges.end ? "proj-end" : "",
+  ].filter(Boolean).join(" ");
+
+  const cellStyle: React.CSSProperties = {};
+  if (edges.startColor) (cellStyle as Record<string, string>)["--proj-start-color"] = edges.startColor;
+  if (edges.endColor)   (cellStyle as Record<string, string>)["--proj-end-color"]   = edges.endColor;
 
   return (
     <button
       type="button"
       onClick={() => onClick(day.key)}
-      style={bg ? { background: bg } : undefined}
-      className={
-        "lift-hover relative w-full h-full p-1 border border-app-cell-border rounded-lg bg-app-cell text-app-fg text-left overflow-hidden " +
-        "focus-visible:outline-2 focus-visible:outline-app-muted focus-visible:outline-offset-[-2px]"
-      }
+      className={classes}
+      style={cellStyle}
     >
-      {isEmpty ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className={
-            "text-[15px] font-semibold " +
-            (day.isToday
-              ? "bg-app-accent text-app-accent-fg w-7 h-7 rounded-full flex items-center justify-center"
-              : "text-app-muted")
-          }>{day.day}</div>
-        </div>
-      ) : (
-        <div className={
-          "text-[11.5px] font-semibold " +
-          (day.isToday
-            ? "bg-app-accent text-app-accent-fg w-[19px] h-[19px] rounded-full flex items-center justify-center"
-            : "text-app-muted")
-        }>{day.day}</div>
-      )}
-
-      {projHits.map((h, idx) => {
-        const isStart = h.start === day.key;
-        const isEnd = h.end === day.key;
-        const showLabel = isStart || day.col === 0 || day.day === 1;
-        return (
-          <div
-            key={`p${idx}-${h.exam.id}`}
-            className="-mx-1 px-1.5 py-[1.5px] text-[9px] font-bold text-white leading-snug truncate"
-            style={{
-              background: h.exam.color,
-              borderTopLeftRadius: isStart ? 5 : 0,
-              borderBottomLeftRadius: isStart ? 5 : 0,
-              borderTopRightRadius: isEnd ? 5 : 0,
-              borderBottomRightRadius: isEnd ? 5 : 0,
-              marginTop: idx === 0 ? 3 : 0,
-            }}
-            title={`Progetto: ${h.exam.name}`}
-          >{showLabel ? h.exam.name : " "}</div>
-        );
-      })}
-
-      {studyExams.length > 0 && (
-        <div className="absolute top-1 right-1 flex gap-0.5 flex-wrap max-w-[50%] justify-end">
-          {studyExams.map((e) => (
-            <span
-              key={e.id}
-              className="w-[7px] h-[7px] rounded-full"
-              style={{ background: e.color, boxShadow: "0 0 0 1px rgba(255,255,255,0.7)" }}
-              title={`Studio: ${e.name}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {appelliToday.length > 0 && (
-        <div className="absolute left-[3px] right-[3px] bottom-[3px] flex flex-col gap-[2px]">
-          {appelliToday.map((e) => (
+      {(visibleBanners.length > 0 || overflowCount > 0) && (
+        <div className="banners">
+          {visibleBanners.map((b, i) => (
             <div
-              key={e.id}
-              className="flex items-center gap-1 text-[9px] font-bold text-white px-1 py-px rounded truncate"
-              style={{ background: e.color }}
-              title={`Appello: ${e.name}`}
-            ><Pin size={8} className="shrink-0" /> <span className="truncate">{e.name}</span></div>
+              key={`b-${i}-${b.examName}`}
+              className="banner"
+              style={{ ["--banner-bg" as string]: b.color } as React.CSSProperties}
+              title={`Appello: ${b.examName}`}
+            >
+              <span className="banner-dot" />
+              <span>{b.examName}</span>
+            </div>
+          ))}
+          {overflowCount > 0 && (
+            <div className="banner banner-overflow">+{overflowCount} altri</div>
+          )}
+        </div>
+      )}
+
+      {activities.length > 0 && (
+        <div className={`band-area split-${splitN}`}>
+          {activities.slice(0, 4).map((a, i) => (
+            <div
+              key={`a-${i}-${a.examId}`}
+              className="band"
+              style={{ ["--bc" as string]: a.color } as React.CSSProperties}
+              title={a.kind === "project" ? `Progetto: ${a.examName}` : `Studio: ${a.examName}`}
+            >
+              {a.kind === "project"
+                ? <Cpu className="band-icon" />
+                : <BrainCircuit className="band-icon" />}
+            </div>
           ))}
         </div>
       )}
+
+      <span className="cell-num">{day.day}</span>
     </button>
   );
 }
