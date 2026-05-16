@@ -144,6 +144,59 @@ pub fn set_passed(conn: &Connection, id: i64, passed: bool) -> Result<(), String
     Ok(())
 }
 
+pub fn toggle_study_day(conn: &Connection, exam_id: i64, date: &str) -> Result<bool, String> {
+    crate::db::types::validate_date(date)?;
+    let exists: bool = conn.query_row(
+        "SELECT 1 FROM study_days WHERE exam_id = ?1 AND date = ?2",
+        params![exam_id, date],
+        |_| Ok(true),
+    ).unwrap_or(false);
+    if exists {
+        conn.execute(
+            "DELETE FROM study_days WHERE exam_id = ?1 AND date = ?2",
+            params![exam_id, date],
+        ).map_err(|e| format!("delete study: {e}"))?;
+        Ok(false)
+    } else {
+        let exam_exists: bool = conn.query_row(
+            "SELECT 1 FROM exams WHERE id = ?1 AND kind = 'esame'",
+            params![exam_id],
+            |_| Ok(true),
+        ).unwrap_or(false);
+        if !exam_exists {
+            return Err(format!("Esame {exam_id} non esistente o è un progetto"));
+        }
+        conn.execute(
+            "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
+            params![exam_id, date],
+        ).map_err(|e| format!("insert study: {e}"))?;
+        Ok(true)
+    }
+}
+
+pub fn search(conn: &Connection, query: &str) -> Result<Vec<Exam>, String> {
+    let q = query.trim();
+    if q.is_empty() {
+        return list(conn);
+    }
+    let mut stmt = conn.prepare(
+        "SELECT id, name, color, kind, passed FROM exams
+         WHERE name LIKE ?1 COLLATE NOCASE
+         ORDER BY name COLLATE NOCASE"
+    ).map_err(|e| format!("prepare search: {e}"))?;
+    let pattern = format!("%{q}%");
+    let rows = stmt.query_map(params![pattern], |r| {
+        Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
+            r.get::<_, String>(3)?, r.get::<_, i64>(4)?))
+    }).map_err(|e| format!("query: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (id, name, color, kind_str, passed) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0)?);
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,5 +323,34 @@ mod tests {
         assert!(get_by_id(&conn, e.id).unwrap().passed);
         set_passed(&conn, e.id, false).unwrap();
         assert!(!get_by_id(&conn, e.id).unwrap().passed);
+    }
+
+    #[test]
+    fn toggle_study_day_on_then_off() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        assert!(toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
+        assert_eq!(get_by_id(&conn, e.id).unwrap().study_days, vec!["2026-06-01"]);
+        assert!(!toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
+        assert!(get_by_id(&conn, e.id).unwrap().study_days.is_empty());
+    }
+
+    #[test]
+    fn toggle_study_day_rejects_on_progetto() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_progetto()).unwrap();
+        assert!(toggle_study_day(&conn, e.id, "2026-06-01").is_err());
+    }
+
+    #[test]
+    fn search_filters_by_name() {
+        let mut conn = open_in_memory().unwrap();
+        create(&mut conn, &sample_esame()).unwrap();
+        create(&mut conn, &sample_progetto()).unwrap();
+        let r = search(&conn, "tesi").unwrap();
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].name, "Tesina Fisiologia");
+        let r2 = search(&conn, "").unwrap();
+        assert_eq!(r2.len(), 2);
     }
 }
