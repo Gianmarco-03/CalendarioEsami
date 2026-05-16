@@ -43,6 +43,8 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
     bg = `linear-gradient(135deg, ${stops})`;
   }
 
+  const isEmpty = colored.length === 0 && appelliToday.length === 0;
+
   return (
     <button
       type="button"
@@ -53,12 +55,23 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
         "hover:outline hover:outline-2 hover:outline-app-muted hover:outline-offset-[-2px]"
       }
     >
-      <div className={
-        "text-[11.5px] font-semibold " +
-        (day.isToday
-          ? "bg-app-accent text-app-accent-fg w-[19px] h-[19px] rounded-full flex items-center justify-center"
-          : "text-app-muted")
-      }>{day.day}</div>
+      {isEmpty ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={
+            "text-[15px] font-semibold " +
+            (day.isToday
+              ? "bg-app-accent text-app-accent-fg w-7 h-7 rounded-full flex items-center justify-center"
+              : "text-app-muted")
+          }>{day.day}</div>
+        </div>
+      ) : (
+        <div className={
+          "text-[11.5px] font-semibold " +
+          (day.isToday
+            ? "bg-app-accent text-app-accent-fg w-[19px] h-[19px] rounded-full flex items-center justify-center"
+            : "text-app-muted")
+        }>{day.day}</div>
+      )}
 
       {projHits.map((h, idx) => {
         const isStart = h.start === day.key;
