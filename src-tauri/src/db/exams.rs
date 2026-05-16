@@ -1,1 +1,169 @@
-// Populated in subsequent tasks.
+use rusqlite::{params, Connection, Result as SqlResult};
+use crate::db::types::*;
+
+pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> {
+    let name = validate_input(input)?;
+    let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+    tx.execute(
+        "INSERT INTO exams (name, color, kind, passed) VALUES (?1, ?2, ?3, ?4)",
+        params![name, input.color, input.kind.as_str(), input.passed as i64],
+    ).map_err(|e| format!("insert exam: {e}"))?;
+    let id = tx.last_insert_rowid();
+    for d in &input.appelli {
+        tx.execute(
+            "INSERT INTO appelli (exam_id, date) VALUES (?1, ?2)",
+            params![id, d],
+        ).map_err(|e| format!("insert appello: {e}"))?;
+    }
+    for r in &input.ranges {
+        tx.execute(
+            "INSERT INTO project_ranges (exam_id, start_date, end_date) VALUES (?1, ?2, ?3)",
+            params![id, r.start, r.end],
+        ).map_err(|e| format!("insert range: {e}"))?;
+    }
+    tx.commit().map_err(|e| format!("commit: {e}"))?;
+    get_by_id(conn, id)
+}
+
+pub fn list(conn: &Connection) -> Result<Vec<Exam>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, color, kind, passed FROM exams ORDER BY name COLLATE NOCASE"
+    ).map_err(|e| format!("prepare: {e}"))?;
+    let rows = stmt.query_map([], |r| {
+        Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
+            r.get::<_, String>(3)?, r.get::<_, i64>(4)?))
+    }).map_err(|e| format!("query: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (id, name, color, kind_str, passed) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0)?);
+    }
+    Ok(out)
+}
+
+pub fn get_by_id(conn: &Connection, id: i64) -> Result<Exam, String> {
+    let (name, color, kind_str, passed): (String, String, String, i64) = conn.query_row(
+        "SELECT name, color, kind, passed FROM exams WHERE id = ?1",
+        params![id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+    ).map_err(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => format!("Esame {id} non trovato"),
+        e => format!("select exam: {e}"),
+    })?;
+    build_exam(conn, id, name, color, &kind_str, passed != 0)
+}
+
+fn build_exam(
+    conn: &Connection,
+    id: i64,
+    name: String,
+    color: String,
+    kind_str: &str,
+    passed: bool,
+) -> Result<Exam, String> {
+    let kind = ExamKind::from_str(kind_str)?;
+    let appelli = load_appelli(conn, id)?;
+    let ranges = load_ranges(conn, id)?;
+    let study_days = load_study_days(conn, id)?;
+    Ok(Exam { id, name, color, kind, passed, appelli, ranges, study_days })
+}
+
+fn load_appelli(conn: &Connection, exam_id: i64) -> Result<Vec<Appello>, String> {
+    let mut stmt = conn.prepare("SELECT id, date FROM appelli WHERE exam_id = ?1 ORDER BY date")
+        .map_err(|e| format!("prepare appelli: {e}"))?;
+    let rows: SqlResult<Vec<Appello>> = stmt.query_map(params![exam_id], |r| {
+        Ok(Appello { id: r.get(0)?, date: r.get(1)? })
+    }).and_then(|it| it.collect());
+    rows.map_err(|e| format!("query appelli: {e}"))
+}
+
+fn load_ranges(conn: &Connection, exam_id: i64) -> Result<Vec<ProjectRange>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT id, start_date, end_date FROM project_ranges WHERE exam_id = ?1 ORDER BY start_date"
+    ).map_err(|e| format!("prepare ranges: {e}"))?;
+    let rows: SqlResult<Vec<ProjectRange>> = stmt.query_map(params![exam_id], |r| {
+        Ok(ProjectRange { id: r.get(0)?, start: r.get(1)?, end: r.get(2)? })
+    }).and_then(|it| it.collect());
+    rows.map_err(|e| format!("query ranges: {e}"))
+}
+
+fn load_study_days(conn: &Connection, exam_id: i64) -> Result<Vec<String>, String> {
+    let mut stmt = conn.prepare("SELECT date FROM study_days WHERE exam_id = ?1 ORDER BY date")
+        .map_err(|e| format!("prepare study_days: {e}"))?;
+    let rows: SqlResult<Vec<String>> = stmt.query_map(params![exam_id], |r| r.get(0))
+        .and_then(|it| it.collect());
+    rows.map_err(|e| format!("query study_days: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::open_in_memory;
+
+    pub(super) fn sample_esame() -> ExamInput {
+        ExamInput {
+            name: "Neuroanatomia".into(),
+            color: "#E8543F".into(),
+            kind: ExamKind::Esame,
+            passed: false,
+            appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
+            ranges: vec![],
+        }
+    }
+
+    pub(super) fn sample_progetto() -> ExamInput {
+        ExamInput {
+            name: "Tesina Fisiologia".into(),
+            color: "#27AE60".into(),
+            kind: ExamKind::Progetto,
+            passed: false,
+            appelli: vec![],
+            ranges: vec![DateRange { start: "2026-05-01".into(), end: "2026-05-15".into() }],
+        }
+    }
+
+    #[test]
+    fn create_and_get_esame() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        assert_eq!(e.name, "Neuroanatomia");
+        assert_eq!(e.kind, ExamKind::Esame);
+        assert_eq!(e.appelli.len(), 2);
+        assert_eq!(e.appelli[0].date, "2026-06-15");
+        assert!(e.ranges.is_empty());
+        assert!(e.study_days.is_empty());
+        assert!(!e.passed);
+    }
+
+    #[test]
+    fn create_progetto() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_progetto()).unwrap();
+        assert_eq!(e.kind, ExamKind::Progetto);
+        assert_eq!(e.ranges.len(), 1);
+        assert_eq!(e.ranges[0].start, "2026-05-01");
+        assert_eq!(e.ranges[0].end, "2026-05-15");
+    }
+
+    #[test]
+    fn list_returns_all_sorted_by_name() {
+        let mut conn = open_in_memory().unwrap();
+        create(&mut conn, &sample_progetto()).unwrap();
+        create(&mut conn, &sample_esame()).unwrap();
+        let list = list(&conn).unwrap();
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].name, "Neuroanatomia");
+        assert_eq!(list[1].name, "Tesina Fisiologia");
+    }
+
+    #[test]
+    fn create_rejects_invalid_input() {
+        let mut conn = open_in_memory().unwrap();
+        let bad = ExamInput {
+            name: "".into(), color: "#000000".into(),
+            kind: ExamKind::Esame, passed: false,
+            appelli: vec![], ranges: vec![],
+        };
+        assert!(create(&mut conn, &bad).is_err());
+    }
+}
