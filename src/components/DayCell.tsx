@@ -1,6 +1,7 @@
 import type { Exam } from "../types";
 import { inRange, tint } from "../date";
 import type { MonthGridDay } from "../date";
+import { Pin } from "lucide-react";
 
 interface DayCellProps {
   day: MonthGridDay;
@@ -98,10 +99,10 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
           {appelliToday.map((e) => (
             <div
               key={e.id}
-              className="text-[9px] font-bold text-white px-1 py-px rounded truncate"
+              className="flex items-center gap-1 text-[9px] font-bold text-white px-1 py-px rounded truncate"
               style={{ background: e.color }}
               title={`Appello: ${e.name}`}
-            >📌 {e.name}</div>
+            ><Pin size={8} className="shrink-0" /> <span className="truncate">{e.name}</span></div>
           ))}
         </div>
       )}

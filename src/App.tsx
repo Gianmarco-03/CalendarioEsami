@@ -7,6 +7,7 @@ import { Calendar } from "./components/Calendar";
 import { DayModal } from "./components/DayModal";
 import { ImportModal } from "./components/ImportModal";
 import type { ExamKind } from "./types";
+import { CalendarDays } from "lucide-react";
 
 function Shell() {
   const { exams, initError } = useExams();
@@ -48,7 +49,9 @@ function Shell() {
       <div className="max-w-[1100px] mx-auto flex gap-4 items-start">
         <Sidebar onAdd={openCreate} onEdit={openEdit} onImport={() => setImportOpen(true)} />
         <main className="flex-1 min-w-0 rounded-2xl bg-white border border-app-border shadow-sm p-4">
-          <h1 className="text-base font-semibold mb-3">📅 Calendario Appelli &amp; Studio</h1>
+          <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
+            <CalendarDays size={18} /> Calendario Appelli &amp; Studio
+          </h1>
           <Calendar onDayClick={setDayKey} />
         </main>
       </div>

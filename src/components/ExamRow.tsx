@@ -1,5 +1,6 @@
 import type { Exam } from "../types";
 import { useExams } from "../state";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface ExamRowProps {
   exam: Exam;
@@ -65,16 +66,18 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
         type="button"
         onClick={() => onEdit(exam.id)}
         title="Modifica"
-        className="text-[13px] px-1 py-0.5 rounded text-[#6b7280] hover:bg-[#eef0f3]"
-      >✎</button>
+        aria-label="Modifica"
+        className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+      ><Pencil size={14} /></button>
       <button
         type="button"
         title="Elimina"
+        aria-label="Elimina"
         onClick={() => {
           if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
         }}
-        className="text-[13px] px-1 py-0.5 rounded text-[#6b7280] hover:bg-[#eef0f3]"
-      >🗑</button>
+        className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+      ><Trash2 size={14} /></button>
     </div>
   );
 }

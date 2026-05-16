@@ -3,6 +3,7 @@ import type { Exam, ExamKind, ExamInput, DateRangeInput } from "../types";
 import { useExams } from "../state";
 import { useToast } from "../toast";
 import { Modal } from "./Modal";
+import { Calendar as CalendarIcon, FolderKanban, X as XIcon, Plus } from "lucide-react";
 
 const PALETTE = [
   "#E8543F", "#2E86C1", "#27AE60", "#8E44AD", "#F39C12", "#16A0A0",
@@ -107,12 +108,12 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
             type="button"
             onClick={() => setKind(k)}
             className={
-              "flex-1 py-2 text-[12.5px] font-semibold " +
+              "flex-1 flex items-center justify-center gap-1.5 py-2 text-[12.5px] font-semibold " +
               (kind === k ? "bg-[#2f3545] text-white" : "bg-white text-[#6b7280]") +
               (i === 0 ? "" : " border-l border-[#d6d9e0]")
             }
           >
-            {k === "esame" ? "📅 Esame" : "📋 Progetto"}
+            {k === "esame" ? <><CalendarIcon size={14} /> Esame</> : <><FolderKanban size={14} /> Progetto</>}
           </button>
         ))}
       </div>
@@ -167,16 +168,17 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
               <button
                 type="button"
                 onClick={() => setAppelli(appelli.filter((_, j) => j !== i))}
-                className="text-[13px] px-1 py-0.5 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+                className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
                 title="Rimuovi"
-              >✕</button>
+                aria-label="Rimuovi"
+              ><XIcon size={14} /></button>
             </div>
           ))}
           <button
             type="button"
             onClick={() => setAppelli([...appelli, ""])}
-            className="text-[12px] font-semibold text-[#2f6fb3] hover:underline"
-          >+ Aggiungi appello</button>
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#2f6fb3] hover:underline"
+          ><Plus size={12} /> Aggiungi appello</button>
         </div>
       )}
 
@@ -204,16 +206,17 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
               <button
                 type="button"
                 onClick={() => setRanges(ranges.filter((_, j) => j !== i))}
-                className="text-[13px] px-1 py-0.5 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+                className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
                 title="Rimuovi"
-              >✕</button>
+                aria-label="Rimuovi"
+              ><XIcon size={14} /></button>
             </div>
           ))}
           <button
             type="button"
             onClick={() => setRanges([...ranges, { start: "", end: "" }])}
-            className="text-[12px] font-semibold text-[#2f6fb3] hover:underline"
-          >+ Aggiungi periodo</button>
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#2f6fb3] hover:underline"
+          ><Plus size={12} /> Aggiungi periodo</button>
         </div>
       )}
 

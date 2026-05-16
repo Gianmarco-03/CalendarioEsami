@@ -1,4 +1,5 @@
 import { MONTHS_IT } from "../date";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CalendarHeaderProps {
   year: number;
@@ -16,7 +17,7 @@ export function CalendarHeader({ year, month, onPrev, onNext, onToday }: Calenda
         onClick={onPrev}
         aria-label="Mese precedente"
         className="w-[30px] h-[30px] flex items-center justify-center rounded-lg border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
-      >‹</button>
+      ><ChevronLeft size={18} /></button>
       <span className="flex-1 text-[15px] font-bold capitalize">
         {MONTHS_IT[month]} {year}
       </span>
@@ -30,7 +31,7 @@ export function CalendarHeader({ year, month, onPrev, onNext, onToday }: Calenda
         onClick={onNext}
         aria-label="Mese successivo"
         className="w-[30px] h-[30px] flex items-center justify-center rounded-lg border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
-      >›</button>
+      ><ChevronRight size={18} /></button>
     </div>
   );
 }

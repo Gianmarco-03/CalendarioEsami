@@ -1,5 +1,6 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
+import { Plus, Upload, Search } from "lucide-react";
 
 interface SidebarProps {
   onAdd: (kind: "esame" | "progetto") => void;
@@ -20,13 +21,16 @@ export function Sidebar({ onAdd, onEdit, onImport }: SidebarProps) {
         Spunta la casella quando hai superato/completato.
       </p>
 
-      <input
-        type="text"
-        placeholder="Cerca…"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full mb-3 px-3 py-1.5 text-[12.5px] border border-[#d6d9e0] rounded-lg focus:outline-2 focus:outline-[#aeb4c0]"
-      />
+      <div className="relative mb-3">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-app-muted pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Cerca…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-8 pr-3 py-1.5 text-[12.5px] border border-[#d6d9e0] rounded-lg focus:outline-2 focus:outline-[#aeb4c0]"
+        />
+      </div>
 
       <div>
         {loading && <div className="text-[12px] text-app-muted">Caricamento…</div>}
@@ -44,23 +48,23 @@ export function Sidebar({ onAdd, onEdit, onImport }: SidebarProps) {
       <div className="flex gap-2 mt-1">
         <button
           onClick={() => onAdd("esame")}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[#2f3545] text-white border border-[#2f3545] hover:bg-[#1f2430]"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[#2f3545] text-white border border-[#2f3545] hover:bg-[#1f2430]"
         >
-          + Esame
+          <Plus size={14} /> Esame
         </button>
         <button
           onClick={() => onAdd("progetto")}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-white text-[#2f3545] border border-[#d6d9e0] hover:bg-[#f4f5f7]"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-white text-[#2f3545] border border-[#d6d9e0] hover:bg-[#f4f5f7]"
         >
-          + Progetto
+          <Plus size={14} /> Progetto
         </button>
       </div>
 
       <button
         type="button"
         onClick={onImport}
-        className="w-full mt-2 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
-      >↥ Importa da artifact</button>
+        className="w-full mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
+      ><Upload size={13} /> Importa da artifact</button>
 
       {passed.length > 0 && (
         <div className="mt-4">
