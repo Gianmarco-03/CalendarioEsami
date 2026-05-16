@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Calendario Appelli & Studio",
+  "productName": "Calendario Appelli e Studio",
   "version": "0.1.0",
   "identifier": "com.calendario-appelli.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Calendario Appelli & Studio",
+        "title": "Calendario Appelli e Studio",
         "width": 1100,
         "height": 760,
         "minWidth": 760,
