@@ -38,7 +38,7 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
     >
       <span
         aria-hidden
-        className="absolute top-1 bottom-1 rounded-lg bg-app-card shadow-sm border border-app-border transition-all duration-300 ease-out"
+        className="absolute top-1 bottom-1 rounded-lg glass-panel shadow-sm transition-all duration-300 ease-out"
         style={{ left: pill.left, width: pill.width }}
       />
       {ITEMS.map(({ id, label, Icon }) => {

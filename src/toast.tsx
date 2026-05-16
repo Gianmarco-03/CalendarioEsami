@@ -40,12 +40,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={
-              "pointer-events-auto rounded-lg px-4 py-2 text-sm font-medium shadow-lg border " +
+              "pointer-events-auto rounded-lg px-4 py-2 text-sm font-medium shadow-lg border backdrop-blur-md " +
               (t.variant === "error"
-                ? "bg-red-50 border-red-200 text-red-900"
+                ? "bg-red-500/15 border-red-400/40 text-red-900 dark:text-red-100"
                 : t.variant === "success"
-                ? "bg-green-50 border-green-200 text-green-900"
-                : "bg-blue-50 border-blue-200 text-blue-900")
+                ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-900 dark:text-emerald-100"
+                : "bg-sky-500/15 border-sky-400/40 text-sky-900 dark:text-sky-100")
             }
           >
             {t.message}
