@@ -13,7 +13,7 @@ interface ProjectHit { exam: Exam; start: string; end: string }
 
 export function DayCell({ day, exams, onClick }: DayCellProps) {
   const studyExams = exams.filter((e) =>
-    e.kind === "esame" && e.studyDays.includes(day.key)
+    e.kind === "esame" && e.studyDays.some((s) => s.date === day.key)
   );
   const projHits: ProjectHit[] = [];
   for (const e of exams) {

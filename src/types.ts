@@ -11,6 +11,11 @@ export interface ProjectRange {
   end: string;
 }
 
+export interface StudyDay {
+  date: string;
+  minutes: number | null;
+}
+
 export interface Exam {
   id: number;
   name: string;
@@ -19,7 +24,7 @@ export interface Exam {
   passed: boolean;
   appelli: Appello[];
   ranges: ProjectRange[];
-  studyDays: string[];
+  studyDays: StudyDay[];
 }
 
 export interface DateRangeInput {

@@ -23,7 +23,15 @@ function metaText(e: Exam): string {
   }
   const nApp = e.appelli.length;
   const nStudy = e.studyDays.length;
-  return `${nApp} appell${nApp === 1 ? "o" : "i"} · ${nStudy} giorn${nStudy === 1 ? "o" : "i"} studio`;
+  const totMinutes = e.studyDays.reduce((s, d) => s + (d.minutes ?? 0), 0);
+  const base = `${nApp} appell${nApp === 1 ? "o" : "i"} · ${nStudy} giorn${nStudy === 1 ? "o" : "i"} studio`;
+  if (totMinutes > 0) {
+    const h = Math.floor(totMinutes / 60);
+    const m = totMinutes % 60;
+    const t = h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return `${base} · ${t}`;
+  }
+  return base;
 }
 
 export function ExamRow({ exam, onEdit }: ExamRowProps) {

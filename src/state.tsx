@@ -15,6 +15,7 @@ interface ExamsContextValue {
   remove: (id: number) => Promise<boolean>;
   setPassed: (id: number, passed: boolean) => Promise<boolean>;
   toggleStudyDay: (examId: number, date: string) => Promise<boolean | null>;
+  setStudyDayMinutes: (examId: number, date: string, minutes: number | null) => Promise<boolean>;
 }
 
 const ExamsContext = createContext<ExamsContextValue | null>(null);
@@ -89,10 +90,18 @@ export function ExamsProvider({ children }: { children: ReactNode }) {
     } catch (err) { toast.error(String(err)); return null; }
   }, [refetch, toast]);
 
+  const setStudyDayMinutes = useCallback(async (examId: number, date: string, minutes: number | null) => {
+    try {
+      await db.setStudyDayMinutes(examId, date, minutes);
+      await refetch();
+      return true;
+    } catch (err) { toast.error(String(err)); return false; }
+  }, [refetch, toast]);
+
   const value = useMemo<ExamsContextValue>(() => ({
     exams, loading, initError, searchQuery, setSearchQuery,
-    refetch, create, update, remove, setPassed, toggleStudyDay,
-  }), [exams, loading, initError, searchQuery, refetch, create, update, remove, setPassed, toggleStudyDay]);
+    refetch, create, update, remove, setPassed, toggleStudyDay, setStudyDayMinutes,
+  }), [exams, loading, initError, searchQuery, refetch, create, update, remove, setPassed, toggleStudyDay, setStudyDayMinutes]);
 
   return <ExamsContext.Provider value={value}>{children}</ExamsContext.Provider>;
 }

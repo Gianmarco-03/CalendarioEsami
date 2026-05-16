@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Exam, ExamInput, ImportReport } from "./types";
+import type { Exam, ExamInput, ImportReport, StudyDay } from "./types";
 
-type ExamWire = Omit<Exam, "studyDays"> & { study_days: string[] };
+type ExamWire = Omit<Exam, "studyDays"> & { study_days: StudyDay[] };
 
 function fromWire(e: ExamWire): Exam {
   const { study_days, ...rest } = e;
@@ -37,6 +37,10 @@ export async function setExamPassed(id: number, passed: boolean): Promise<void> 
 
 export async function toggleStudyDay(examId: number, date: string): Promise<boolean> {
   return await invoke<boolean>("toggle_study_day", { examId, date });
+}
+
+export async function setStudyDayMinutes(examId: number, date: string, minutes: number | null): Promise<void> {
+  await invoke("set_study_day_minutes", { examId, date, minutes });
 }
 
 export async function searchExams(query: string): Promise<Exam[]> {
