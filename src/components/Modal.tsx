@@ -22,13 +22,13 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       className="fixed inset-0 z-40 bg-[rgba(20,24,40,0.42)] flex items-center justify-center p-5"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl w-[380px] max-w-full max-h-[88vh] overflow-auto shadow-2xl">
+      <div className="bg-app-card text-app-fg rounded-2xl w-[380px] max-w-full max-h-[88vh] overflow-auto shadow-2xl border border-app-border">
         <div className="flex items-start justify-between px-4 pt-4 pb-2">
           <h3 className="text-[14.5px] font-semibold leading-snug m-0">{title}</h3>
           <button
             onClick={onClose}
             aria-label="Chiudi"
-            className="text-[#6b7280] p-1 rounded hover:bg-[#eef0f3]"
+            className="text-app-muted p-1 rounded hover:bg-app-hover hover:text-app-fg"
           ><X size={18} /></button>
         </div>
         <div className="px-4 pb-4 pt-1">{children}</div>

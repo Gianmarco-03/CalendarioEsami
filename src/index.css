@@ -1,10 +1,20 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-app-bg: #f4f5f7;
+  --color-app-card: #ffffff;
   --color-app-fg: #1f2430;
   --color-app-muted: #8b91a1;
   --color-app-border: #e5e7ec;
+  --color-app-soft: #eef0f3;
+  --color-app-hover: #f4f5f7;
+  --color-app-input-bg: #ffffff;
+  --color-app-input-border: #d6d9e0;
+  --color-app-accent: #2f3545;
+  --color-app-accent-fg: #ffffff;
+  --color-app-accent-hover: #1f2430;
 
   --color-exam-1:  #E8543F;
   --color-exam-2:  #2E86C1;
@@ -18,6 +28,21 @@
   --color-exam-10: #1F8A4C;
   --color-exam-11: #7D5FFF;
   --color-exam-12: #E67E22;
+}
+
+.dark {
+  --color-app-bg: #0f1117;
+  --color-app-card: #181b23;
+  --color-app-fg: #e7ebf2;
+  --color-app-muted: #8c93a4;
+  --color-app-border: #2a2f3a;
+  --color-app-soft: #232733;
+  --color-app-hover: #232733;
+  --color-app-input-bg: #1f232d;
+  --color-app-input-border: #313847;
+  --color-app-accent: #e7ebf2;
+  --color-app-accent-fg: #1f2430;
+  --color-app-accent-hover: #ffffff;
 }
 
 @layer base {

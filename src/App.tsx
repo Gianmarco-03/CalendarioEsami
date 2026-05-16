@@ -55,7 +55,7 @@ function Shell() {
   }
 
   return (
-    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden">
+    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden transition-colors">
       <div className="h-full w-full flex gap-4">
         <Sidebar
           section={section}
@@ -64,7 +64,7 @@ function Shell() {
           onEdit={openEdit}
           onImport={() => setImportOpen(true)}
         />
-        <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-white border border-app-border shadow-sm p-4">
+        <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-app-card border border-app-border shadow-sm p-4">
           <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
             {(() => { const I = SECTION_META[section].Icon; return <I size={18} />; })()}
             {SECTION_META[section].label}

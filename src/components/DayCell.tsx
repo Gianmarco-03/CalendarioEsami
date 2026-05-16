@@ -49,15 +49,15 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
       onClick={() => onClick(day.key)}
       style={bg ? { background: bg } : undefined}
       className={
-        "relative w-full h-full min-h-[94px] p-1 border border-[#ebedf1] rounded-lg bg-white text-left overflow-hidden " +
-        "hover:outline hover:outline-2 hover:outline-[#c7cbd4] hover:outline-offset-[-2px]"
+        "relative w-full h-full min-h-[94px] p-1 border border-app-border rounded-lg bg-app-card text-app-fg text-left overflow-hidden " +
+        "hover:outline hover:outline-2 hover:outline-app-muted hover:outline-offset-[-2px]"
       }
     >
       <div className={
         "text-[11.5px] font-semibold " +
         (day.isToday
-          ? "bg-[#2f3545] text-white w-[19px] h-[19px] rounded-full flex items-center justify-center"
-          : "text-[#6b7280]")
+          ? "bg-app-accent text-app-accent-fg w-[19px] h-[19px] rounded-full flex items-center justify-center"
+          : "text-app-muted")
       }>{day.day}</div>
 
       {projHits.map((h, idx) => {

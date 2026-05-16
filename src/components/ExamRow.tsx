@@ -32,7 +32,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
 
   return (
     <div className={
-      "flex items-center gap-2 p-2 rounded-lg border border-[#eef0f3] mb-1.5 bg-[#fcfcfd] " +
+      "flex items-center gap-2 p-2 rounded-lg border border-app-border mb-1.5 bg-app-soft " +
       (exam.passed ? "opacity-65" : "")
     }>
       <span
@@ -67,7 +67,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
         onClick={() => onEdit(exam.id)}
         title="Modifica"
         aria-label="Modifica"
-        className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+        className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
       ><Pencil size={14} /></button>
       <button
         type="button"
@@ -76,7 +76,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
         onClick={() => {
           if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
         }}
-        className="p-1 rounded text-[#6b7280] hover:bg-[#eef0f3]"
+        className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
       ><Trash2 size={14} /></button>
     </div>
   );

@@ -36,7 +36,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
         ))}
       </div>
       <div
-        className="grid grid-cols-7 gap-1.5 auto-rows-fr"
+        className="grid grid-cols-7 gap-1.5"
         style={{ gridAutoRows: "minmax(94px, 1fr)" }}
       >
         {Array.from({ length: grid.leadingBlanks }).map((_, i) => (

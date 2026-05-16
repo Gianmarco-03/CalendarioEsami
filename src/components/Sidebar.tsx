@@ -17,7 +17,7 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
   const passed = exams.filter((e) => e.passed);
 
   return (
-    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl bg-white border border-app-border shadow-sm p-4 flex flex-col">
+    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl bg-app-card border border-app-border shadow-sm p-4 flex flex-col">
       <SectionSwitcher active={section} onChange={onSectionChange} />
       <h2 className="font-semibold text-[15px] mb-1">Esami e progetti</h2>
       <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
@@ -32,7 +32,7 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
           placeholder="Cerca…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 text-[12.5px] border border-[#d6d9e0] rounded-lg focus:outline-2 focus:outline-[#aeb4c0]"
+          className="w-full pl-8 pr-3 py-1.5 text-[12.5px] bg-app-input-bg text-app-fg border border-app-input-border rounded-lg focus:outline-2 focus:outline-app-muted placeholder:text-app-muted"
         />
       </div>
 
@@ -52,13 +52,13 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
       <div className="flex gap-2 mt-1">
         <button
           onClick={() => onAdd("esame")}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[#2f3545] text-white border border-[#2f3545] hover:bg-[#1f2430]"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-app-accent text-app-accent-fg border border-app-accent hover:bg-app-accent-hover"
         >
           <Plus size={14} /> Esame
         </button>
         <button
           onClick={() => onAdd("progetto")}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-white text-[#2f3545] border border-[#d6d9e0] hover:bg-[#f4f5f7]"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-app-card text-app-fg border border-app-input-border hover:bg-app-hover"
         >
           <Plus size={14} /> Progetto
         </button>
@@ -67,7 +67,7 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
       <button
         type="button"
         onClick={onImport}
-        className="w-full mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
+        className="w-full mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-app-input-border bg-app-card text-app-fg hover:bg-app-hover"
       ><Upload size={13} /> Importa da artifact</button>
 
       {passed.length > 0 && (
@@ -76,6 +76,8 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport }: S
           {passed.map((e) => <ExamRow key={e.id} exam={e} onEdit={onEdit} />)}
         </div>
       )}
+
+      <div className="mt-auto pt-3" />
     </aside>
   );
 }

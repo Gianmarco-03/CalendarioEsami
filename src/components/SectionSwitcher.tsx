@@ -34,11 +34,11 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
   return (
     <div
       ref={containerRef}
-      className="relative grid grid-cols-3 gap-0 p-1 bg-[#eef0f3] rounded-xl mb-3"
+      className="relative grid grid-cols-3 gap-0 p-1 bg-app-soft rounded-xl mb-3"
     >
       <span
         aria-hidden
-        className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm border border-[#e5e7ec] transition-all duration-300 ease-out"
+        className="absolute top-1 bottom-1 rounded-lg bg-app-card shadow-sm border border-app-border transition-all duration-300 ease-out"
         style={{ left: pill.left, width: pill.width }}
       />
       {ITEMS.map(({ id, label, Icon }) => {
@@ -51,7 +51,7 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
             onClick={() => onChange(id)}
             className={
               "relative z-10 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors " +
-              (isActive ? "text-[#2f3545]" : "text-app-muted hover:text-[#2f3545]")
+              (isActive ? "text-app-fg" : "text-app-muted hover:text-app-fg")
             }
           >
             <Icon size={13} />
