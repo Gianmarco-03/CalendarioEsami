@@ -55,6 +55,7 @@ pub struct Exam {
     pub color: String,
     pub kind: ExamKind,
     pub passed: bool,
+    pub default_study_minutes: i32,
     pub appelli: Vec<Appello>,
     pub ranges: Vec<ProjectRange>,
     pub study_days: Vec<StudyDay>,
@@ -66,6 +67,7 @@ pub struct ExamInput {
     pub color: String,
     pub kind: ExamKind,
     pub passed: bool,
+    pub default_study_minutes: i32,
     pub appelli: Vec<String>,
     pub ranges: Vec<DateRange>,
 }
@@ -123,6 +125,12 @@ pub fn validate_range(r: &DateRange) -> Result<(), String> {
 pub fn validate_input(input: &ExamInput) -> Result<String, String> {
     let name = validate_name(&input.name)?;
     validate_color(&input.color)?;
+    if input.default_study_minutes < 0 || input.default_study_minutes > 1440 {
+        return Err(format!(
+            "Tempo di studio predefinito non valido: {} (0..1440)",
+            input.default_study_minutes
+        ));
+    }
     for d in &input.appelli {
         validate_date(d)?;
     }
@@ -191,6 +199,7 @@ mod tests {
             color: "#112233".into(),
             kind: ExamKind::Esame,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec![],
             ranges: vec![DateRange { start: "2026-01-01".into(), end: "2026-01-02".into() }],
         };
@@ -204,6 +213,7 @@ mod tests {
             color: "#112233".into(),
             kind: ExamKind::Progetto,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec![],
             ranges: vec![],
         };
@@ -217,9 +227,33 @@ mod tests {
             color: "#112233".into(),
             kind: ExamKind::Progetto,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec!["2026-01-01".into()],
             ranges: vec![DateRange { start: "2026-01-01".into(), end: "2026-01-02".into() }],
         };
         assert!(validate_input(&i).is_err());
+    }
+
+    #[test]
+    fn default_study_minutes_out_of_range_rejected() {
+        let mut i = ExamInput {
+            name: "x".into(),
+            color: "#112233".into(),
+            kind: ExamKind::Esame,
+            passed: false,
+            default_study_minutes: -1,
+            appelli: vec![],
+            ranges: vec![],
+        };
+        assert!(validate_input(&i).is_err());
+
+        i.default_study_minutes = 1441;
+        assert!(validate_input(&i).is_err());
+
+        i.default_study_minutes = 0;
+        assert!(validate_input(&i).is_ok());
+
+        i.default_study_minutes = 1440;
+        assert!(validate_input(&i).is_ok());
     }
 }

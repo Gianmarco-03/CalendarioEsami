@@ -1,0 +1,1 @@
+ALTER TABLE exams ADD COLUMN default_study_minutes INTEGER NOT NULL DEFAULT 60;

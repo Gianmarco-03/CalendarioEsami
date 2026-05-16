@@ -3,6 +3,8 @@ use serde::Deserialize;
 use crate::db::types::*;
 use crate::db::exams;
 
+fn default_60() -> i32 { 60 }
+
 #[derive(Deserialize)]
 struct ArtifactRoot {
     exams: Vec<ArtifactExam>,
@@ -16,6 +18,8 @@ struct ArtifactExam {
     kind: String,
     #[serde(default)]
     passed: bool,
+    #[serde(rename = "defaultStudyMinutes", default = "default_60")]
+    default_study_minutes: i32,
     #[serde(default)]
     appelli: Vec<ArtifactAppello>,
     #[serde(default)]
@@ -58,6 +62,7 @@ pub fn import_artifact_json(conn: &mut Connection, payload: &str) -> Result<Impo
             color: ae.color.clone(),
             kind,
             passed: ae.passed,
+            default_study_minutes: ae.default_study_minutes,
             appelli,
             ranges,
         };

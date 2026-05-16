@@ -5,8 +5,8 @@ pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> 
     let name = validate_input(input)?;
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     tx.execute(
-        "INSERT INTO exams (name, color, kind, passed) VALUES (?1, ?2, ?3, ?4)",
-        params![name, input.color, input.kind.as_str(), input.passed as i64],
+        "INSERT INTO exams (name, color, kind, passed, default_study_minutes) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![name, input.color, input.kind.as_str(), input.passed as i64, input.default_study_minutes],
     ).map_err(|e| format!("insert exam: {e}"))?;
     let id = tx.last_insert_rowid();
     for d in &input.appelli {
@@ -27,30 +27,30 @@ pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> 
 
 pub fn list(conn: &Connection) -> Result<Vec<Exam>, String> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, color, kind, passed FROM exams ORDER BY name COLLATE NOCASE"
+        "SELECT id, name, color, kind, passed, default_study_minutes FROM exams ORDER BY name COLLATE NOCASE"
     ).map_err(|e| format!("prepare: {e}"))?;
     let rows = stmt.query_map([], |r| {
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
-            r.get::<_, String>(3)?, r.get::<_, i64>(4)?))
+            r.get::<_, String>(3)?, r.get::<_, i64>(4)?, r.get::<_, i32>(5)?))
     }).map_err(|e| format!("query: {e}"))?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, name, color, kind_str, passed) = row.map_err(|e| format!("row: {e}"))?;
-        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0)?);
+        let (id, name, color, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)?);
     }
     Ok(out)
 }
 
 pub fn get_by_id(conn: &Connection, id: i64) -> Result<Exam, String> {
-    let (name, color, kind_str, passed): (String, String, String, i64) = conn.query_row(
-        "SELECT name, color, kind, passed FROM exams WHERE id = ?1",
+    let (name, color, kind_str, passed, dsm): (String, String, String, i64, i32) = conn.query_row(
+        "SELECT name, color, kind, passed, default_study_minutes FROM exams WHERE id = ?1",
         params![id],
-        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
     ).map_err(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => format!("Esame {id} non trovato"),
         e => format!("select exam: {e}"),
     })?;
-    build_exam(conn, id, name, color, &kind_str, passed != 0)
+    build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)
 }
 
 fn build_exam(
@@ -60,12 +60,13 @@ fn build_exam(
     color: String,
     kind_str: &str,
     passed: bool,
+    default_study_minutes: i32,
 ) -> Result<Exam, String> {
     let kind = ExamKind::from_str(kind_str)?;
     let appelli = load_appelli(conn, id)?;
     let ranges = load_ranges(conn, id)?;
     let study_days = load_study_days(conn, id)?;
-    Ok(Exam { id, name, color, kind, passed, appelli, ranges, study_days })
+    Ok(Exam { id, name, color, kind, passed, default_study_minutes, appelli, ranges, study_days })
 }
 
 fn load_appelli(conn: &Connection, exam_id: i64) -> Result<Vec<Appello>, String> {
@@ -119,8 +120,8 @@ pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam,
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     let changed = tx.execute(
         "UPDATE exams SET name = ?1, color = ?2, kind = ?3, passed = ?4,
-                          updated_at = datetime('now') WHERE id = ?5",
-        params![name, input.color, input.kind.as_str(), input.passed as i64, id],
+                          default_study_minutes = ?5, updated_at = datetime('now') WHERE id = ?6",
+        params![name, input.color, input.kind.as_str(), input.passed as i64, input.default_study_minutes, id],
     ).map_err(|e| format!("update exam: {e}"))?;
     if changed == 0 {
         return Err(format!("Esame {id} non trovato"));
@@ -231,19 +232,19 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Exam>, String> {
         return list(conn);
     }
     let mut stmt = conn.prepare(
-        "SELECT id, name, color, kind, passed FROM exams
+        "SELECT id, name, color, kind, passed, default_study_minutes FROM exams
          WHERE name LIKE ?1 COLLATE NOCASE
          ORDER BY name COLLATE NOCASE"
     ).map_err(|e| format!("prepare search: {e}"))?;
     let pattern = format!("%{q}%");
     let rows = stmt.query_map(params![pattern], |r| {
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
-            r.get::<_, String>(3)?, r.get::<_, i64>(4)?))
+            r.get::<_, String>(3)?, r.get::<_, i64>(4)?, r.get::<_, i32>(5)?))
     }).map_err(|e| format!("query: {e}"))?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, name, color, kind_str, passed) = row.map_err(|e| format!("row: {e}"))?;
-        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0)?);
+        let (id, name, color, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)?);
     }
     Ok(out)
 }
@@ -259,6 +260,7 @@ mod tests {
             color: "#E8543F".into(),
             kind: ExamKind::Esame,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
             ranges: vec![],
         }
@@ -270,6 +272,7 @@ mod tests {
             color: "#27AE60".into(),
             kind: ExamKind::Progetto,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec![],
             ranges: vec![DateRange { start: "2026-05-01".into(), end: "2026-05-15".into() }],
         }
@@ -315,6 +318,7 @@ mod tests {
         let bad = ExamInput {
             name: "".into(), color: "#000000".into(),
             kind: ExamKind::Esame, passed: false,
+            default_study_minutes: 60,
             appelli: vec![], ranges: vec![],
         };
         assert!(create(&mut conn, &bad).is_err());
@@ -459,6 +463,7 @@ mod tests {
             color: proj.color.clone(),
             kind: ExamKind::Progetto,
             passed: false,
+            default_study_minutes: 60,
             appelli: vec![],
             ranges: vec![DateRange { start: "2026-06-10".into(), end: "2026-06-20".into() }],
         };

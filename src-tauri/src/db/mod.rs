@@ -8,6 +8,7 @@ pub mod types;
 const MIGRATIONS: &[(&str, &str)] = &[
     ("001_init", include_str!("migrations/001_init.sql")),
     ("002_study_minutes", include_str!("migrations/002_study_minutes.sql")),
+    ("003_default_study_minutes", include_str!("migrations/003_default_study_minutes.sql")),
 ];
 
 pub fn open(path: &std::path::Path) -> Result<Connection> {
