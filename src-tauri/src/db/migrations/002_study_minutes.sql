@@ -1,0 +1,1 @@
+ALTER TABLE study_days ADD COLUMN minutes INTEGER;

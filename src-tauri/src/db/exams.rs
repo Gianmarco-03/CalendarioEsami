@@ -87,12 +87,31 @@ fn load_ranges(conn: &Connection, exam_id: i64) -> Result<Vec<ProjectRange>, Str
     rows.map_err(|e| format!("query ranges: {e}"))
 }
 
-fn load_study_days(conn: &Connection, exam_id: i64) -> Result<Vec<String>, String> {
-    let mut stmt = conn.prepare("SELECT date FROM study_days WHERE exam_id = ?1 ORDER BY date")
-        .map_err(|e| format!("prepare study_days: {e}"))?;
-    let rows: SqlResult<Vec<String>> = stmt.query_map(params![exam_id], |r| r.get(0))
-        .and_then(|it| it.collect());
+fn load_study_days(conn: &Connection, exam_id: i64) -> Result<Vec<StudyDay>, String> {
+    let mut stmt = conn.prepare(
+        "SELECT date, minutes FROM study_days WHERE exam_id = ?1 ORDER BY date"
+    ).map_err(|e| format!("prepare study_days: {e}"))?;
+    let rows: SqlResult<Vec<StudyDay>> = stmt.query_map(params![exam_id], |r| {
+        Ok(StudyDay { date: r.get(0)?, minutes: r.get(1)? })
+    }).and_then(|it| it.collect());
     rows.map_err(|e| format!("query study_days: {e}"))
+}
+
+pub fn set_study_day_minutes(conn: &Connection, exam_id: i64, date: &str, minutes: Option<i32>) -> Result<(), String> {
+    crate::db::types::validate_date(date)?;
+    if let Some(m) = minutes {
+        if m < 0 || m > 24 * 60 {
+            return Err(format!("Minuti non validi: {m} (0..1440)"));
+        }
+    }
+    let changed = conn.execute(
+        "UPDATE study_days SET minutes = ?1 WHERE exam_id = ?2 AND date = ?3",
+        params![minutes, exam_id, date],
+    ).map_err(|e| format!("update minutes: {e}"))?;
+    if changed == 0 {
+        return Err(format!("Giorno di studio {date} non trovato per esame {exam_id}"));
+    }
+    Ok(())
 }
 
 pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam, String> {
@@ -291,7 +310,8 @@ mod tests {
             params![e.id, "2026-06-01"],
         ).unwrap();
         let updated = update(&mut conn, e.id, &sample_esame()).unwrap();
-        assert_eq!(updated.study_days, vec!["2026-06-01"]);
+        assert_eq!(updated.study_days.len(), 1);
+        assert_eq!(updated.study_days[0].date, "2026-06-01");
     }
 
     #[test]
@@ -330,9 +350,33 @@ mod tests {
         let mut conn = open_in_memory().unwrap();
         let e = create(&mut conn, &sample_esame()).unwrap();
         assert!(toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
-        assert_eq!(get_by_id(&conn, e.id).unwrap().study_days, vec!["2026-06-01"]);
+        let days = get_by_id(&conn, e.id).unwrap().study_days;
+        assert_eq!(days.len(), 1);
+        assert_eq!(days[0].date, "2026-06-01");
+        assert_eq!(days[0].minutes, None);
         assert!(!toggle_study_day(&conn, e.id, "2026-06-01").unwrap());
         assert!(get_by_id(&conn, e.id).unwrap().study_days.is_empty());
+    }
+
+    #[test]
+    fn set_study_day_minutes_works() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        toggle_study_day(&conn, e.id, "2026-06-01").unwrap();
+        set_study_day_minutes(&conn, e.id, "2026-06-01", Some(90)).unwrap();
+        let days = get_by_id(&conn, e.id).unwrap().study_days;
+        assert_eq!(days[0].minutes, Some(90));
+        set_study_day_minutes(&conn, e.id, "2026-06-01", None).unwrap();
+        assert_eq!(get_by_id(&conn, e.id).unwrap().study_days[0].minutes, None);
+    }
+
+    #[test]
+    fn set_study_day_minutes_rejects_out_of_range() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        toggle_study_day(&conn, e.id, "2026-06-01").unwrap();
+        assert!(set_study_day_minutes(&conn, e.id, "2026-06-01", Some(-1)).is_err());
+        assert!(set_study_day_minutes(&conn, e.id, "2026-06-01", Some(2000)).is_err());
     }
 
     #[test]

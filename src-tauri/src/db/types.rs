@@ -43,6 +43,12 @@ pub struct ProjectRange {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StudyDay {
+    pub date: String,
+    pub minutes: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Exam {
     pub id: i64,
     pub name: String,
@@ -51,7 +57,7 @@ pub struct Exam {
     pub passed: bool,
     pub appelli: Vec<Appello>,
     pub ranges: Vec<ProjectRange>,
-    pub study_days: Vec<String>,
+    pub study_days: Vec<StudyDay>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

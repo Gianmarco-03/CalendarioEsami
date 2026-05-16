@@ -62,6 +62,18 @@ pub fn toggle_study_day(state: State<AppState>, exam_id: i64, date: String) -> R
 }
 
 #[tauri::command]
+pub fn set_study_day_minutes(
+    state: State<AppState>,
+    exam_id: i64,
+    date: String,
+    minutes: Option<i32>,
+) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    db::exams::set_study_day_minutes(conn, exam_id, &date, minutes)
+}
+
+#[tauri::command]
 pub fn search_exams(state: State<AppState>, query: String) -> Result<Vec<Exam>, String> {
     let guard = lock(&state)?;
     let conn = guard.as_ref().map_err(|e| e.clone())?;

@@ -20,6 +20,7 @@ pub fn run() {
             commands::delete_exam,
             commands::set_exam_passed,
             commands::toggle_study_day,
+            commands::set_study_day_minutes,
             commands::search_exams,
             commands::import_artifact_json,
             commands::get_setting,

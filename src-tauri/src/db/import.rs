@@ -119,7 +119,8 @@ mod tests {
         assert_eq!(list.len(), 2);
         let neuro = list.iter().find(|e| e.name == "Neuro").unwrap();
         assert_eq!(neuro.appelli.len(), 1);
-        assert_eq!(neuro.study_days, vec!["2026-06-01"]);
+        assert_eq!(neuro.study_days.len(), 1);
+        assert_eq!(neuro.study_days[0].date, "2026-06-01");
     }
 
     #[test]

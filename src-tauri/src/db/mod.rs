@@ -7,6 +7,7 @@ pub mod types;
 
 const MIGRATIONS: &[(&str, &str)] = &[
     ("001_init", include_str!("migrations/001_init.sql")),
+    ("002_study_minutes", include_str!("migrations/002_study_minutes.sql")),
 ];
 
 pub fn open(path: &std::path::Path) -> Result<Connection> {
@@ -53,7 +54,7 @@ mod tests {
     fn migrations_apply_on_empty_db() {
         let conn = open_in_memory().expect("open in-memory");
         let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(v, 1);
+        assert_eq!(v, MIGRATIONS.len() as i64);
         let tables: Vec<String> = conn
             .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
             .unwrap()
@@ -70,6 +71,20 @@ mod tests {
         migrate(&mut conn).unwrap();
         migrate(&mut conn).unwrap();
         let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(v, 1);
+        assert_eq!(v, MIGRATIONS.len() as i64);
+    }
+
+    #[test]
+    fn study_days_has_minutes_column() {
+        let conn = open_in_memory().unwrap();
+        // PRAGMA table_info returns rows: cid, name, type, notnull, dflt_value, pk
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(study_days)")
+            .unwrap()
+            .query_map([], |r| r.get::<_, String>(1))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert!(cols.contains(&"minutes".to_string()), "got cols: {cols:?}");
     }
 }
