@@ -3,6 +3,7 @@ import { ExamsProvider, useExams } from "./state";
 import { ToastProvider } from "./toast";
 import { Sidebar } from "./components/Sidebar";
 import { ExamModal } from "./components/ExamModal";
+import { Calendar } from "./components/Calendar";
 import type { ExamKind } from "./types";
 
 function Shell() {
@@ -29,7 +30,7 @@ function Shell() {
         <Sidebar onAdd={openCreate} onEdit={openEdit} onImport={() => {}} />
         <main className="flex-1 min-w-0 rounded-2xl bg-white border border-app-border shadow-sm p-4">
           <h1 className="text-base font-semibold mb-3">📅 Calendario Appelli &amp; Studio</h1>
-          <div className="text-sm text-app-muted">Calendario (in arrivo)</div>
+          <Calendar onDayClick={() => {}} />
         </main>
       </div>
       <ExamModal
