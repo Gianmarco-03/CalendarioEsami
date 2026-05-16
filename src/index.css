@@ -78,6 +78,49 @@
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 }
 
+@layer components {
+  .glass-panel {
+    background: var(--color-app-card);
+    backdrop-filter: blur(var(--blur-strong)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(160%);
+    border: 1px solid var(--color-app-border);
+    transition: background-color 0.25s, border-color 0.25s;
+  }
+
+  .glass-input {
+    background: var(--color-app-input-bg);
+    border: 1px solid var(--color-app-input-border);
+    color: var(--color-app-fg);
+  }
+  .glass-input::placeholder {
+    color: var(--color-app-muted);
+  }
+
+  .lift-hover {
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background-color 0.18s ease;
+  }
+  .lift-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(70, 130, 240, 0.15);
+  }
+  .dark .lift-hover:hover {
+    box-shadow: 0 4px 14px rgba(70, 130, 240, 0.25);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lift-hover {
+      transition: none;
+    }
+    .lift-hover:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
