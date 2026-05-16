@@ -104,6 +104,7 @@ impl Exam {
 // === Inputs mirror the same hierarchy ===
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EsameInputData {
     pub name: String,
     pub color: String,
@@ -113,6 +114,7 @@ pub struct EsameInputData {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgettoInputData {
     #[serde(flatten)]
     pub esame: EsameInputData,
