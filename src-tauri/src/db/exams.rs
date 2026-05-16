@@ -95,6 +95,55 @@ fn load_study_days(conn: &Connection, exam_id: i64) -> Result<Vec<String>, Strin
     rows.map_err(|e| format!("query study_days: {e}"))
 }
 
+pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam, String> {
+    let name = validate_input(input)?;
+    let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
+    let changed = tx.execute(
+        "UPDATE exams SET name = ?1, color = ?2, kind = ?3, passed = ?4,
+                          updated_at = datetime('now') WHERE id = ?5",
+        params![name, input.color, input.kind.as_str(), input.passed as i64, id],
+    ).map_err(|e| format!("update exam: {e}"))?;
+    if changed == 0 {
+        return Err(format!("Esame {id} non trovato"));
+    }
+    tx.execute("DELETE FROM appelli WHERE exam_id = ?1", params![id])
+        .map_err(|e| format!("delete appelli: {e}"))?;
+    tx.execute("DELETE FROM project_ranges WHERE exam_id = ?1", params![id])
+        .map_err(|e| format!("delete ranges: {e}"))?;
+    for d in &input.appelli {
+        tx.execute("INSERT INTO appelli (exam_id, date) VALUES (?1, ?2)", params![id, d])
+            .map_err(|e| format!("insert appello: {e}"))?;
+    }
+    for r in &input.ranges {
+        tx.execute(
+            "INSERT INTO project_ranges (exam_id, start_date, end_date) VALUES (?1, ?2, ?3)",
+            params![id, r.start, r.end],
+        ).map_err(|e| format!("insert range: {e}"))?;
+    }
+    tx.commit().map_err(|e| format!("commit: {e}"))?;
+    get_by_id(conn, id)
+}
+
+pub fn delete(conn: &Connection, id: i64) -> Result<(), String> {
+    let changed = conn.execute("DELETE FROM exams WHERE id = ?1", params![id])
+        .map_err(|e| format!("delete: {e}"))?;
+    if changed == 0 {
+        return Err(format!("Esame {id} non trovato"));
+    }
+    Ok(())
+}
+
+pub fn set_passed(conn: &Connection, id: i64, passed: bool) -> Result<(), String> {
+    let changed = conn.execute(
+        "UPDATE exams SET passed = ?1, updated_at = datetime('now') WHERE id = ?2",
+        params![passed as i64, id],
+    ).map_err(|e| format!("update passed: {e}"))?;
+    if changed == 0 {
+        return Err(format!("Esame {id} non trovato"));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,5 +214,61 @@ mod tests {
             appelli: vec![], ranges: vec![],
         };
         assert!(create(&mut conn, &bad).is_err());
+    }
+
+    #[test]
+    fn update_replaces_appelli() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        let mut next = sample_esame();
+        next.name = "Neuroanat. (rinominato)".into();
+        next.appelli = vec!["2026-09-01".into()];
+        let updated = update(&mut conn, e.id, &next).unwrap();
+        assert_eq!(updated.name, "Neuroanat. (rinominato)");
+        assert_eq!(updated.appelli.len(), 1);
+        assert_eq!(updated.appelli[0].date, "2026-09-01");
+    }
+
+    #[test]
+    fn update_preserves_study_days() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        conn.execute(
+            "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
+            params![e.id, "2026-06-01"],
+        ).unwrap();
+        let updated = update(&mut conn, e.id, &sample_esame()).unwrap();
+        assert_eq!(updated.study_days, vec!["2026-06-01"]);
+    }
+
+    #[test]
+    fn delete_cascades_to_appelli_and_study_days() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        conn.execute(
+            "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
+            params![e.id, "2026-06-01"],
+        ).unwrap();
+        delete(&conn, e.id).unwrap();
+        let n_app: i64 = conn.query_row("SELECT COUNT(*) FROM appelli", [], |r| r.get(0)).unwrap();
+        let n_sd:  i64 = conn.query_row("SELECT COUNT(*) FROM study_days", [], |r| r.get(0)).unwrap();
+        assert_eq!(n_app, 0);
+        assert_eq!(n_sd, 0);
+    }
+
+    #[test]
+    fn delete_missing_id_errors() {
+        let conn = open_in_memory().unwrap();
+        assert!(delete(&conn, 999).is_err());
+    }
+
+    #[test]
+    fn set_passed_toggles() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        set_passed(&conn, e.id, true).unwrap();
+        assert!(get_by_id(&conn, e.id).unwrap().passed);
+        set_passed(&conn, e.id, false).unwrap();
+        assert!(!get_by_id(&conn, e.id).unwrap().passed);
     }
 }
