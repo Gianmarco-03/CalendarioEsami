@@ -19,10 +19,10 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-40 bg-[rgba(20,24,40,0.42)] flex items-center justify-center p-5"
+      className="fixed inset-0 z-40 bg-black/30 backdrop-blur-md flex items-center justify-center p-5"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-app-card text-app-fg rounded-2xl w-[380px] max-w-full max-h-[88vh] overflow-auto shadow-2xl border border-app-border">
+      <div className="text-app-fg rounded-2xl w-[380px] max-w-full max-h-[88vh] overflow-auto shadow-2xl glass-panel">
         <div className="flex items-start justify-between px-4 pt-4 pb-2">
           <h3 className="text-[14.5px] font-semibold leading-snug m-0">{title}</h3>
           <button
