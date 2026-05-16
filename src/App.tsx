@@ -57,8 +57,13 @@ function Shell() {
   }
 
   return (
-    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden transition-colors">
-      <div className="h-full w-full flex gap-4">
+    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden transition-colors relative">
+      <div className="aurora-bg" aria-hidden="true">
+        <div className="aurora-blob aurora-blob-1" />
+        <div className="aurora-blob aurora-blob-2" />
+        <div className="aurora-blob aurora-blob-3" />
+      </div>
+      <div className="relative z-0 h-full w-full flex gap-4">
         <Sidebar
           section={section}
           onSectionChange={setSection}
