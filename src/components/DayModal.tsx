@@ -3,6 +3,7 @@ import { inRange, parseYmd } from "../date";
 import { Modal } from "./Modal";
 import { Clock } from "lucide-react";
 import { effectiveMinutes, countPresences } from "../study-time";
+import { isProgetto } from "../progetto";
 
 interface DayModalProps {
   open: boolean;
@@ -23,18 +24,17 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
   const active = exams.filter((e) => !e.passed);
   const infoLines: { color: string; text: string }[] = [];
   for (const e of active) {
-    if (e.kind === "esame") {
-      for (const a of e.appelli) {
-        if (a.date === dayKey) infoLines.push({ color: e.color, text: `Appello: ${e.name}` });
-      }
-    } else {
+    for (const a of e.appelli) {
+      if (a.date === dayKey) infoLines.push({ color: e.color, text: `Appello: ${e.name}` });
+    }
+    if (isProgetto(e)) {
       if (e.ranges.some((r) => inRange(dayKey, r.start, r.end))) {
         infoLines.push({ color: e.color, text: `Progetto in corso: ${e.name}` });
       }
     }
   }
 
-  const studyEsami = active.filter((e) => e.kind === "esame");
+  const studyTargets = active;
 
   return (
     <Modal open={open} onClose={onClose} title={title}>
@@ -49,7 +49,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
         </div>
       )}
 
-      {studyEsami.length === 0 ? (
+      {studyTargets.length === 0 ? (
         <div className="text-[12px] text-app-muted py-1.5">
           {infoLines.length > 0
             ? "Nessun esame per cui segnare lo studio."
@@ -60,7 +60,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
           <div className="text-[11px] font-bold text-app-muted uppercase tracking-wide mb-2">
             Sto studiando per…
           </div>
-          {studyEsami.map((e) => {
+          {studyTargets.map((e) => {
             const studyEntry = e.studyDays.find((s) => s.date === dayKey);
             const studying = !!studyEntry;
             const computed = effectiveMinutes(e, dayKey, active);

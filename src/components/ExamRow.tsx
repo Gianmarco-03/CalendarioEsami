@@ -2,6 +2,7 @@ import type { Exam } from "../types";
 import { useExams } from "../state";
 import { Pencil, Trash2 } from "lucide-react";
 import { totalMinutes, formatHM } from "../study-time";
+import { isProgetto, totalRangeDays } from "../progetto";
 
 interface ExamRowProps {
   exam: Exam;
@@ -9,11 +10,8 @@ interface ExamRowProps {
 }
 
 function metaText(exam: Exam, allExams: Exam[]): string {
-  if (exam.kind === "progetto") {
-    const totDays = exam.ranges.reduce(
-      (s, r) => s + Math.max(1, Math.round((+new Date(r.end) - +new Date(r.start)) / 86_400_000) + 1),
-      0
-    );
+  if (isProgetto(exam)) {
+    const totDays = totalRangeDays(exam);
     const totMin = totalMinutes(exam, allExams);
     const time = formatHM(totMin);
     return time ? `${totDays}g · ${time}` : `${totDays}g`;
