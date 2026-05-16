@@ -2,6 +2,7 @@ import { useExams } from "../state";
 import { inRange, parseYmd } from "../date";
 import { Modal } from "./Modal";
 import { Clock } from "lucide-react";
+import { effectiveMinutes, countPresences } from "../study-time";
 
 interface DayModalProps {
   open: boolean;
@@ -62,6 +63,10 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
           {studyEsami.map((e) => {
             const studyEntry = e.studyDays.find((s) => s.date === dayKey);
             const studying = !!studyEntry;
+            const computed = effectiveMinutes(e, dayKey, active);
+            const t = e.defaultStudyMinutes;
+            const n = countPresences(dayKey, active);
+            const isOverride = studyEntry?.minutes != null;
             return (
               <div
                 key={e.id}
@@ -78,7 +83,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
                       min={0}
                       max={1440}
                       step={5}
-                      placeholder="min"
+                      placeholder={String(computed)}
                       value={studyEntry.minutes ?? ""}
                       onChange={(ev) => {
                         const raw = ev.target.value;
@@ -87,7 +92,15 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
                       }}
                       className="w-14 px-1.5 py-1 text-[12px] text-app-fg bg-app-input-bg border border-app-input-border rounded"
                       aria-label={`Minuti di studio per ${e.name}`}
+                      title={
+                        isOverride
+                          ? `Manuale (formula: ${computed}m = ${t}/${n})`
+                          : `Auto (${computed}m = ${t}/${n}). Modifica per override.`
+                      }
                     />
+                    <span className="text-[9.5px] whitespace-nowrap">
+                      {isOverride ? "manuale" : `auto ${computed}m`}
+                    </span>
                   </div>
                 )}
 
