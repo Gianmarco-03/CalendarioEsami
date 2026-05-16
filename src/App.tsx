@@ -72,7 +72,7 @@ function Shell() {
           onImport={() => setImportOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
-        <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl bg-app-card border border-app-border shadow-sm p-4 overflow-hidden">
+        <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl glass-panel shadow-sm p-4 overflow-hidden">
           <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
             {(() => { const I = SECTION_META[section].Icon; return <I size={18} />; })()}
             {SECTION_META[section].label}
