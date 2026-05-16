@@ -22,6 +22,7 @@ export interface Exam {
   color: string;
   kind: ExamKind;
   passed: boolean;
+  defaultStudyMinutes: number;
   appelli: Appello[];
   ranges: ProjectRange[];
   studyDays: StudyDay[];
@@ -37,6 +38,7 @@ export interface ExamInput {
   color: string;
   kind: ExamKind;
   passed: boolean;
+  defaultStudyMinutes: number;
   appelli: string[];
   ranges: DateRangeInput[];
 }

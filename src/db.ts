@@ -1,11 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Exam, ExamInput, ImportReport, StudyDay } from "./types";
 
-type ExamWire = Omit<Exam, "studyDays"> & { study_days: StudyDay[] };
+type ExamWire = Omit<Exam, "studyDays" | "defaultStudyMinutes"> & {
+  study_days: StudyDay[];
+  default_study_minutes: number;
+};
 
 function fromWire(e: ExamWire): Exam {
-  const { study_days, ...rest } = e;
-  return { ...rest, studyDays: study_days };
+  const { study_days, default_study_minutes, ...rest } = e;
+  return { ...rest, studyDays: study_days, defaultStudyMinutes: default_study_minutes };
 }
 
 export async function dbStatus(): Promise<void> {
