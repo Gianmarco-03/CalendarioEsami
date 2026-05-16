@@ -8,6 +8,10 @@ function fromWire(e: ExamWire): Exam {
   return { ...rest, studyDays: study_days };
 }
 
+export async function dbStatus(): Promise<void> {
+  await invoke("db_status");
+}
+
 export async function listExams(): Promise<Exam[]> {
   const wire = await invoke<ExamWire[]>("list_exams");
   return wire.map(fromWire);

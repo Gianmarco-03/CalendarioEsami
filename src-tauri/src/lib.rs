@@ -8,12 +8,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let state = commands::build_state(app)
-                .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+            let state = commands::build_state(app);
             app.manage(state);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::db_status,
             commands::list_exams,
             commands::create_exam,
             commands::update_exam,

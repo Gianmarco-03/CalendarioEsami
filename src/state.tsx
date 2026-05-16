@@ -6,6 +6,7 @@ import { useToast } from "./toast";
 interface ExamsContextValue {
   exams: Exam[];
   loading: boolean;
+  initError: string | null;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   refetch: () => Promise<void>;
@@ -21,17 +22,26 @@ const ExamsContext = createContext<ExamsContextValue | null>(null);
 export function ExamsProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const toast = useToast();
 
   const refetch = useCallback(async () => {
     try {
+      await db.dbStatus();
+      setInitError(null);
       const list = searchQuery.trim()
         ? await db.searchExams(searchQuery)
         : await db.listExams();
       setExams(list);
     } catch (e) {
-      toast.error(String(e));
+      const msg = String(e);
+      // Init errors (DB cannot open) surface as full-screen instead of toast.
+      if (msg.includes("open db") || msg.includes("app_data_dir")) {
+        setInitError(msg);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,9 +90,9 @@ export function ExamsProvider({ children }: { children: ReactNode }) {
   }, [refetch, toast]);
 
   const value = useMemo<ExamsContextValue>(() => ({
-    exams, loading, searchQuery, setSearchQuery,
+    exams, loading, initError, searchQuery, setSearchQuery,
     refetch, create, update, remove, setPassed, toggleStudyDay,
-  }), [exams, loading, searchQuery, refetch, create, update, remove, setPassed, toggleStudyDay]);
+  }), [exams, loading, initError, searchQuery, refetch, create, update, remove, setPassed, toggleStudyDay]);
 
   return <ExamsContext.Provider value={value}>{children}</ExamsContext.Provider>;
 }

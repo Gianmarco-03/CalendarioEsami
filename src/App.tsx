@@ -9,7 +9,7 @@ import { ImportModal } from "./components/ImportModal";
 import type { ExamKind } from "./types";
 
 function Shell() {
-  const { exams } = useExams();
+  const { exams, initError } = useExams();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalKind, setModalKind] = useState<ExamKind>("esame");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -27,6 +27,21 @@ function Shell() {
     setEditingId(id);
     setModalOpen(true);
   };
+
+  if (initError) {
+    return (
+      <div className="min-h-screen bg-app-bg flex items-center justify-center p-6">
+        <div className="max-w-md bg-white rounded-2xl border border-red-200 shadow-lg p-6">
+          <h2 className="text-base font-bold text-red-700 mb-2">Errore di inizializzazione database</h2>
+          <p className="text-[13px] text-app-fg leading-relaxed mb-3">
+            L'app non è riuscita a aprire il database locale. Prova a chiudere e riaprire.
+            Se il problema persiste, segnala questo messaggio:
+          </p>
+          <pre className="text-[11px] bg-[#f4f5f7] border border-[#eef0f3] rounded p-2 overflow-auto whitespace-pre-wrap">{initError}</pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app-bg text-app-fg p-4">
