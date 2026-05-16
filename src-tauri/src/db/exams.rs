@@ -163,6 +163,33 @@ pub fn set_passed(conn: &Connection, id: i64, passed: bool) -> Result<(), String
     Ok(())
 }
 
+/// Counts active presences for a given date:
+///   - one per active esame with a study_day on `date`
+///   - one per active progetto whose ranges cover `date`
+/// "Active" = `passed = 0`. Used to enforce the 4-presence-per-day cap.
+pub fn count_presences(conn: &Connection, date: &str) -> Result<usize, String> {
+    crate::db::types::validate_date(date)?;
+
+    let n_studies: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM study_days sd
+         JOIN exams e ON e.id = sd.exam_id
+         WHERE sd.date = ?1 AND e.passed = 0 AND e.kind = 'esame'",
+        params![date],
+        |r| r.get(0),
+    ).map_err(|e| format!("count studies: {e}"))?;
+
+    let n_projects: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM project_ranges pr
+         JOIN exams e ON e.id = pr.exam_id
+         WHERE pr.start_date <= ?1 AND pr.end_date >= ?1
+           AND e.passed = 0 AND e.kind = 'progetto'",
+        params![date],
+        |r| r.get(0),
+    ).map_err(|e| format!("count projects: {e}"))?;
+
+    Ok((n_studies + n_projects) as usize)
+}
+
 pub fn toggle_study_day(conn: &Connection, exam_id: i64, date: &str) -> Result<bool, String> {
     crate::db::types::validate_date(date)?;
     let exists: bool = conn.query_row(
@@ -184,6 +211,11 @@ pub fn toggle_study_day(conn: &Connection, exam_id: i64, date: &str) -> Result<b
         ).unwrap_or(false);
         if !exam_exists {
             return Err(format!("Esame {exam_id} non esistente o è un progetto"));
+        }
+        // Enforce the 4-activity-per-day cap before adding.
+        let current = count_presences(conn, date)?;
+        if current >= 4 {
+            return Err("Massimo 4 attività per giorno (progetti + esami in studio)".into());
         }
         conn.execute(
             "INSERT INTO study_days (exam_id, date) VALUES (?1, ?2)",
@@ -396,5 +428,101 @@ mod tests {
         assert_eq!(r[0].name, "Tesina Fisiologia");
         let r2 = search(&conn, "").unwrap();
         assert_eq!(r2.len(), 2);
+    }
+
+    #[test]
+    fn count_presences_empty_day() {
+        let conn = open_in_memory().unwrap();
+        assert_eq!(count_presences(&conn, "2026-06-15").unwrap(), 0);
+    }
+
+    #[test]
+    fn count_presences_counts_studies_and_projects() {
+        let mut conn = open_in_memory().unwrap();
+
+        // Esame 1 with study on 2026-06-15
+        let e1 = create(&mut conn, &sample_esame()).unwrap();
+        toggle_study_day(&conn, e1.id, "2026-06-15").unwrap();
+
+        // Esame 2 with study on 2026-06-15
+        let mut input2 = sample_esame();
+        input2.name = "Fisiologia".into();
+        input2.color = "#2E86C1".into();
+        input2.appelli = vec!["2026-08-01".into()];
+        let e2 = create(&mut conn, &input2).unwrap();
+        toggle_study_day(&conn, e2.id, "2026-06-15").unwrap();
+
+        // Progetto covering 2026-06-15
+        let proj = create(&mut conn, &sample_progetto()).unwrap();
+        let proj_input = ExamInput {
+            name: "Tesi v2".into(),
+            color: proj.color.clone(),
+            kind: ExamKind::Progetto,
+            passed: false,
+            appelli: vec![],
+            ranges: vec![DateRange { start: "2026-06-10".into(), end: "2026-06-20".into() }],
+        };
+        let _ = update(&mut conn, proj.id, &proj_input).unwrap();
+
+        // Total presences on 2026-06-15: 2 studies + 1 project = 3
+        assert_eq!(count_presences(&conn, "2026-06-15").unwrap(), 3);
+    }
+
+    #[test]
+    fn toggle_study_day_rejects_when_already_4_presences() {
+        let mut conn = open_in_memory().unwrap();
+
+        // Create 4 esami all with study on the same date
+        let date = "2026-06-15";
+        for i in 0..4 {
+            let mut input = sample_esame();
+            input.name = format!("Esame {}", i);
+            input.appelli = vec!["2026-08-01".into()];
+            input.color = match i {
+                0 => "#E8543F".into(),
+                1 => "#2E86C1".into(),
+                2 => "#27AE60".into(),
+                _ => "#F39C12".into(),
+            };
+            let e = create(&mut conn, &input).unwrap();
+            toggle_study_day(&conn, e.id, date).unwrap();
+        }
+        assert_eq!(count_presences(&conn, date).unwrap(), 4);
+
+        // 5th esame, attempting to toggle study on same date → should fail
+        let mut input5 = sample_esame();
+        input5.name = "Esame 5".into();
+        input5.color = "#8E44AD".into();
+        input5.appelli = vec!["2026-08-01".into()];
+        let e5 = create(&mut conn, &input5).unwrap();
+        let result = toggle_study_day(&conn, e5.id, date);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("Massimo 4"), "expected cap error, got: {err}");
+    }
+
+    #[test]
+    fn toggle_study_day_off_always_allowed_even_at_cap() {
+        let mut conn = open_in_memory().unwrap();
+
+        let date = "2026-06-15";
+        let mut first_id = 0;
+        for i in 0..4 {
+            let mut input = sample_esame();
+            input.name = format!("Esame {}", i);
+            input.appelli = vec!["2026-08-01".into()];
+            input.color = match i {
+                0 => "#E8543F".into(),
+                1 => "#2E86C1".into(),
+                2 => "#27AE60".into(),
+                _ => "#F39C12".into(),
+            };
+            let e = create(&mut conn, &input).unwrap();
+            toggle_study_day(&conn, e.id, date).unwrap();
+            if i == 0 { first_id = e.id; }
+        }
+        // Toggle OFF the first study should succeed even though cell is at cap
+        let result = toggle_study_day(&conn, first_id, date);
+        assert_eq!(result.unwrap(), false);
     }
 }
