@@ -1,35 +1,31 @@
 import type { Exam } from "../types";
 import { useExams } from "../state";
 import { Pencil, Trash2 } from "lucide-react";
+import { totalMinutes, formatHM } from "../study-time";
 
 interface ExamRowProps {
   exam: Exam;
   onEdit: (id: number) => void;
 }
 
-function rangeDays(start: string, end: string): number {
-  const s = new Date(start); const e = new Date(end);
-  return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
-}
-
-function metaText(e: Exam): string {
-  if (e.kind === "progetto") {
-    const tot = e.ranges.reduce((s, r) => s + rangeDays(r.start, r.end), 0);
-    return `${tot}g`;
+function metaText(exam: Exam, allExams: Exam[]): string {
+  if (exam.kind === "progetto") {
+    const totDays = exam.ranges.reduce(
+      (s, r) => s + Math.max(1, Math.round((+new Date(r.end) - +new Date(r.start)) / 86_400_000) + 1),
+      0
+    );
+    const totMin = totalMinutes(exam, allExams);
+    const time = formatHM(totMin);
+    return time ? `${totDays}g · ${time}` : `${totDays}g`;
   }
-  const nApp = e.appelli.length;
-  const totMinutes = e.studyDays.reduce((s, d) => s + (d.minutes ?? 0), 0);
-  if (totMinutes > 0) {
-    const h = Math.floor(totMinutes / 60);
-    const m = totMinutes % 60;
-    const timePart = h > 0 ? (m > 0 ? `${h}h${m}m` : `${h}h`) : `${m}m`;
-    return `${nApp}·${timePart}`;
-  }
-  return `${nApp}`;
+  const nApp = exam.appelli.length;
+  const totMin = totalMinutes(exam, allExams);
+  const time = formatHM(totMin);
+  return time ? `${nApp}·${time}` : `${nApp}`;
 }
 
 export function ExamRow({ exam, onEdit }: ExamRowProps) {
-  const { setPassed, remove } = useExams();
+  const { setPassed, remove, exams } = useExams();
 
   const classes = [
     "exam-row-redesign",
@@ -44,7 +40,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
     >
       <span className="exam-row-redesign-stripe" />
       <span className="exam-row-redesign-name">{exam.name}</span>
-      <span className="exam-row-redesign-meta">{metaText(exam)}</span>
+      <span className="exam-row-redesign-meta">{metaText(exam, exams)}</span>
       <label
         className="flex items-center cursor-pointer shrink-0"
         title={exam.kind === "progetto" ? "Segna come completato" : "Segna come superato"}
