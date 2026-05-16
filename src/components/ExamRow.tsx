@@ -13,56 +13,42 @@ function rangeDays(start: string, end: string): number {
 }
 
 function metaText(e: Exam): string {
-  const isProj = e.kind === "progetto";
-  if (e.passed) return isProj ? "Completato" : "Superato";
-  if (isProj) {
+  if (e.kind === "progetto") {
     const tot = e.ranges.reduce((s, r) => s + rangeDays(r.start, r.end), 0);
-    let s = `${tot} giorn${tot === 1 ? "o" : "i"}`;
-    if (e.ranges.length > 1) s += ` · ${e.ranges.length} periodi`;
-    return s;
+    return `${tot}g`;
   }
   const nApp = e.appelli.length;
-  const nStudy = e.studyDays.length;
   const totMinutes = e.studyDays.reduce((s, d) => s + (d.minutes ?? 0), 0);
-  const base = `${nApp} appell${nApp === 1 ? "o" : "i"} · ${nStudy} giorn${nStudy === 1 ? "o" : "i"} studio`;
   if (totMinutes > 0) {
     const h = Math.floor(totMinutes / 60);
     const m = totMinutes % 60;
-    const t = h > 0 ? `${h}h ${m}m` : `${m}m`;
-    return `${base} · ${t}`;
+    const timePart = h > 0 ? (m > 0 ? `${h}h${m}m` : `${h}h`) : `${m}m`;
+    return `${nApp}·${timePart}`;
   }
-  return base;
+  return `${nApp}`;
 }
 
 export function ExamRow({ exam, onEdit }: ExamRowProps) {
   const { setPassed, remove } = useExams();
-  const isProj = exam.kind === "progetto";
+
+  const classes = [
+    "exam-row-redesign",
+    "lift-hover",
+    exam.passed ? "passed" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={
-      "lift-hover flex items-center gap-2 p-2 rounded-lg border border-app-border mb-1.5 bg-app-soft " +
-      (exam.passed ? "opacity-65" : "")
-    }>
-      <span
-        className={"shrink-0 " + (isProj ? "w-[13px] h-[13px] rounded" : "w-[13px] h-[13px] rounded-full")}
-        style={{ background: exam.color }}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className={
-            "text-[13px] font-semibold truncate min-w-0 " +
-            (exam.passed ? "line-through" : "")
-          }>{exam.name}</span>
-          <span className={
-            "text-[8.5px] font-bold uppercase tracking-wider rounded px-1 shrink-0 " +
-            (isProj ? "bg-[#ede7fb] text-[#6b4fb0]" : "bg-[#eef0f3] text-[#7b8190]")
-          }>
-            {isProj ? "Progetto" : "Esame"}
-          </span>
-        </div>
-        <div className="text-[10.5px] text-app-muted mt-px">{metaText(exam)}</div>
-      </div>
-      <label className="flex items-center cursor-pointer" title={isProj ? "Segna come completato" : "Segna come superato"}>
+    <div
+      className={classes}
+      style={{ ["--ec" as string]: exam.color } as React.CSSProperties}
+    >
+      <span className="exam-row-redesign-stripe" />
+      <span className="exam-row-redesign-name">{exam.name}</span>
+      <span className="exam-row-redesign-meta">{metaText(exam)}</span>
+      <label
+        className="flex items-center cursor-pointer shrink-0"
+        title={exam.kind === "progetto" ? "Segna come completato" : "Segna come superato"}
+      >
         <input
           type="checkbox"
           checked={exam.passed}
@@ -70,22 +56,22 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
           className="w-[15px] h-[15px] cursor-pointer accent-[#2f9e57]"
         />
       </label>
-      <button
-        type="button"
-        onClick={() => onEdit(exam.id)}
-        title="Modifica"
-        aria-label="Modifica"
-        className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
-      ><Pencil size={14} /></button>
-      <button
-        type="button"
-        title="Elimina"
-        aria-label="Elimina"
-        onClick={() => {
-          if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
-        }}
-        className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
-      ><Trash2 size={14} /></button>
+      <div className="exam-row-redesign-actions">
+        <button
+          type="button"
+          onClick={() => onEdit(exam.id)}
+          title="Modifica"
+          aria-label="Modifica"
+        ><Pencil size={13} /></button>
+        <button
+          type="button"
+          title="Elimina"
+          aria-label="Elimina"
+          onClick={() => {
+            if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
+          }}
+        ><Trash2 size={13} /></button>
+      </div>
     </div>
   );
 }
