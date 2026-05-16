@@ -67,12 +67,12 @@ function Shell() {
           onImport={() => setImportOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
-        <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-app-card border border-app-border shadow-sm p-4">
-          <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
+        <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl bg-app-card border border-app-border shadow-sm p-4 overflow-hidden">
+          <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
             {(() => { const I = SECTION_META[section].Icon; return <I size={18} />; })()}
             {SECTION_META[section].label}
           </h1>
-          <div key={section} className="animate-[fade-in_220ms_ease-out]">
+          <div key={section} className="flex-1 min-h-0 flex flex-col animate-[fade-in_220ms_ease-out]">
             {section === "calendar" && <Calendar onDayClick={setDayKey} />}
             {section === "stats" && <StatsView />}
             {section === "todo" && <TodoView />}

@@ -21,23 +21,28 @@ export function Calendar({ onDayClick }: CalendarProps) {
   const next = () => setView((v) => v.m === 11 ? { y: v.y + 1, m: 0 } : { ...v, m: v.m + 1 });
   const today = () => setView({ y: new Date().getFullYear(), m: new Date().getMonth() });
 
+  const totalCells = grid.leadingBlanks + grid.days.length;
+  const weeks = Math.ceil(totalCells / 7);
+
   return (
-    <div>
-      <CalendarHeader
-        year={grid.year}
-        month={grid.month}
-        onPrev={prev}
-        onNext={next}
-        onToday={today}
-      />
-      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-        {WEEKDAYS_IT_SHORT.map((d) => (
-          <div key={d} className="text-[10.5px] font-bold text-app-muted uppercase tracking-wide text-center">{d}</div>
-        ))}
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0">
+        <CalendarHeader
+          year={grid.year}
+          month={grid.month}
+          onPrev={prev}
+          onNext={next}
+          onToday={today}
+        />
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+          {WEEKDAYS_IT_SHORT.map((d) => (
+            <div key={d} className="text-[10.5px] font-bold text-app-muted uppercase tracking-wide text-center">{d}</div>
+          ))}
+        </div>
       </div>
       <div
-        className="grid grid-cols-7 gap-1.5"
-        style={{ gridAutoRows: "minmax(94px, 1fr)" }}
+        className="flex-1 min-h-0 grid grid-cols-7 gap-1.5"
+        style={{ gridTemplateRows: `repeat(${weeks}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: grid.leadingBlanks }).map((_, i) => (
           <div key={`b${i}`} className="border border-transparent bg-transparent" />
@@ -46,7 +51,9 @@ export function Calendar({ onDayClick }: CalendarProps) {
           <DayCell key={d.key} day={d} exams={activeExams} onClick={onDayClick} />
         ))}
       </div>
-      <Legend />
+      <div className="shrink-0">
+        <Legend />
+      </div>
     </div>
   );
 }
