@@ -4,6 +4,7 @@ pub mod exams;
 pub mod settings;
 pub mod import;
 pub mod types;
+pub mod progetto;
 
 const MIGRATIONS: &[(&str, &str)] = &[
     ("001_init", include_str!("migrations/001_init.sql")),
