@@ -20,8 +20,12 @@ sidebar.
 
 ## 2. Stack
 
-- **Frontend:** React 18 + TypeScript (strict) + Vite, CSS puro portato verbatim
-  dall'artifact (no Tailwind).
+- **Frontend:** React 18 + TypeScript (strict) + Vite + **Tailwind CSS v4** (via
+  plugin Vite ufficiale `@tailwindcss/vite`). Tailwind copre layout, spacing,
+  tipografia, colori statici, transizioni e future animazioni. I background
+  dinamici color-per-esame (gradient delle celle, project bar, study dot, appello
+  pill) restano come `style={{ background: ... }}` inline sui componenti — inevitabile
+  con qualsiasi framework CSS perché il colore proviene da dati runtime.
 - **Backend:** Rust + `rusqlite` dietro comandi Tauri 2.x custom. **Non** si usa
   `tauri-plugin-sql`: si vuole tenere SQL fuori dal TS, avere validazione tipizzata
   e ritornare `Result<T, String>` con messaggi parlanti.
@@ -183,7 +187,8 @@ src/
   db.ts                    # thin client su invoke(): listExams, createExam, ...
   types.ts                 # Exam, Appello, DateRange, ExamKind, ImportReport
   date.ts                  # ymd, parseYmd, inRange, tint, buildMonthGrid
-  styles.css               # CSS dell'artifact, portato verbatim
+  index.css                # @import "tailwindcss"; + @theme {} con palette esami
+                           #   + minimi @layer components (es. .cell-base hover ring)
   components/
     Sidebar.tsx            # ricerca + lista attivi + sezione "Completati"
     ExamRow.tsx
@@ -194,6 +199,19 @@ src/
     ImportModal.tsx        # textarea + bottone "Importa"
     Toast.tsx              # banner top-right, auto-dismiss 4s
 ```
+
+### Styling
+
+- Tailwind v4 via `@tailwindcss/vite`. Configurazione CSS-first in `index.css` con
+  blocco `@theme {}` per esporre la palette dei 12 colori esame come custom
+  properties riutilizzabili.
+- Layout/spacing/typography/border via classi Tailwind utility direttamente in
+  JSX.
+- Background dinamici (cella tinta, project bar, study dot, appello pill, swatch
+  del modale) → `style={{ background: ... }}` inline, perché il colore è dato
+  runtime e Tailwind non genera utilities per valori arbitrari runtime.
+- Pattern ricorrenti che meritano nome semantico (es. cella calendario con stato
+  today/empty/hover) → `@layer components` con `@apply` in `index.css`.
 
 ### Comportamento
 
