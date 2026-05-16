@@ -45,10 +45,10 @@ function Shell() {
   }
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-fg p-4">
-      <div className="max-w-[1100px] mx-auto flex gap-4 items-start">
+    <div className="h-screen w-screen bg-app-bg text-app-fg p-4 overflow-hidden">
+      <div className="h-full w-full flex gap-4">
         <Sidebar onAdd={openCreate} onEdit={openEdit} onImport={() => setImportOpen(true)} />
-        <main className="flex-1 min-w-0 rounded-2xl bg-white border border-app-border shadow-sm p-4">
+        <main className="flex-1 min-w-0 h-full overflow-auto rounded-2xl bg-white border border-app-border shadow-sm p-4">
           <h1 className="flex items-center gap-2 text-base font-semibold mb-3">
             <CalendarDays size={18} /> Calendario Appelli &amp; Studio
           </h1>

@@ -14,7 +14,7 @@ export function Sidebar({ onAdd, onEdit, onImport }: SidebarProps) {
   const passed = exams.filter((e) => e.passed);
 
   return (
-    <aside className="w-[290px] shrink-0 rounded-2xl bg-white border border-app-border shadow-sm p-4">
+    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl bg-white border border-app-border shadow-sm p-4 flex flex-col">
       <h2 className="font-semibold text-[15px] mb-1">Esami e progetti</h2>
       <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
         Clicca un giorno per segnare lo studio. I <b>progetti</b> sono esami che durano più giorni.

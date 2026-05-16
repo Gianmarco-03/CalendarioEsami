@@ -49,7 +49,7 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
       onClick={() => onClick(day.key)}
       style={bg ? { background: bg } : undefined}
       className={
-        "relative min-h-[94px] p-1 border border-[#ebedf1] rounded-lg bg-white text-left overflow-hidden " +
+        "relative w-full h-full min-h-[94px] p-1 border border-[#ebedf1] rounded-lg bg-white text-left overflow-hidden " +
         "hover:outline hover:outline-2 hover:outline-[#c7cbd4] hover:outline-offset-[-2px]"
       }
     >

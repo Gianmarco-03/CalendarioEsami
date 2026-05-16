@@ -35,9 +35,12 @@ export function Calendar({ onDayClick }: CalendarProps) {
           <div key={d} className="text-[10.5px] font-bold text-app-muted uppercase tracking-wide text-center">{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
+      <div
+        className="grid grid-cols-7 gap-1.5 auto-rows-fr"
+        style={{ gridAutoRows: "minmax(94px, 1fr)" }}
+      >
         {Array.from({ length: grid.leadingBlanks }).map((_, i) => (
-          <div key={`b${i}`} className="min-h-[94px] border border-transparent bg-transparent" />
+          <div key={`b${i}`} className="border border-transparent bg-transparent" />
         ))}
         {grid.days.map((d) => (
           <DayCell key={d.key} day={d} exams={activeExams} onClick={onDayClick} />
