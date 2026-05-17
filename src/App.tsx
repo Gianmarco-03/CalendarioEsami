@@ -79,7 +79,7 @@ function Shell() {
           </h1>
           <div key={section} className="flex-1 min-h-0 flex flex-col animate-[fade-in_220ms_ease-out]">
             {section === "calendar" && <Calendar onDayClick={setDayKey} />}
-            {section === "stats" && <StatsView />}
+            {section === "stats" && <StatsView onDayClick={setDayKey} />}
             {section === "todo" && <TodoView />}
           </div>
         </main>

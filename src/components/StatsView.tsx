@@ -1,17 +1,135 @@
-import { BarChart3 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useExams } from "../state";
+import { useSuggestedStrategy } from "../suggested-strategy";
+import { dailyTotals } from "../study-time";
+import { rangeDays } from "../study-time-format";
+import { ymd, parseYmd } from "../date";
+import { RangeSelector, resolveRange, type StatsRange } from "./stats/RangeSelector";
+import { ChartModeToggle, type ChartMode } from "./stats/ChartModeToggle";
+import { KpiCards } from "./stats/KpiCards";
+import { TodayQuickLog } from "./stats/TodayQuickLog";
+import { StudyChart, type DayPoint } from "./stats/StudyChart";
+import { YearHeatmap } from "./stats/YearHeatmap";
+import { PerExamBars } from "./stats/PerExamBars";
+import "./stats/stats-chart.css";
 
-export function StatsView() {
+interface Props {
+  onDayClick: (dayKey: string) => void;
+}
+
+const WEEKDAYS_SHORT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const MONTHS_SHORT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+
+function formatDayLabel(dayKey: string, range: StatsRange): string {
+  const d = parseYmd(dayKey);
+  if (range === "7g") return WEEKDAYS_SHORT[(d.getDay() + 6) % 7];
+  if (range === "30g" || range === "mese") return String(d.getDate());
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
+function formatWeekLabel(mondayKey: string): string {
+  const d = parseYmd(mondayKey);
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
+export function StatsView({ onDayClick }: Props) {
+  const { exams } = useExams();
+  const strategy = useSuggestedStrategy();
+  const today = ymd(new Date());
+  const [range, setRange] = useState<StatsRange>("7g");
+  const [mode, setMode] = useState<ChartMode>("line");
+
+  const { start, end } = useMemo(() => {
+    if (range !== "tutto") return resolveRange(range, today);
+    const allDates: string[] = [];
+    for (const e of exams) {
+      if (e.passed) continue;
+      for (const sd of e.studyDays) {
+        if ((sd.minutes ?? 0) > 0) allDates.push(sd.date);
+      }
+    }
+    if (allDates.length === 0) return { start: today, end: today };
+    allDates.sort();
+    return { start: allDates[0], end: today };
+  }, [range, today, exams]);
+
+  const { data, referenceData, todayIndex } = useMemo(() => {
+    const days = rangeDays(start, end);
+    const aggregate = days.length > 60;
+    if (!aggregate) {
+      const data: DayPoint[] = days.map((d) => ({
+        date: d,
+        label: formatDayLabel(d, range),
+        minutes: dailyTotals(exams, d, strategy).actual,
+      }));
+      const referenceData: DayPoint[] = days.map((d) => ({
+        date: d,
+        label: formatDayLabel(d, range),
+        minutes: dailyTotals(exams, d, strategy).suggested,
+      }));
+      const idx = days.indexOf(today);
+      return { data, referenceData, todayIndex: idx >= 0 ? idx : undefined };
+    }
+    const buckets = new Map<string, { actual: number; suggested: number }>();
+    const order: string[] = [];
+    for (const d of days) {
+      const dt = parseYmd(d);
+      const dow = (dt.getDay() + 6) % 7;
+      dt.setDate(dt.getDate() - dow);
+      const key = ymd(dt);
+      if (!buckets.has(key)) {
+        buckets.set(key, { actual: 0, suggested: 0 });
+        order.push(key);
+      }
+      const b = buckets.get(key)!;
+      const dt2 = dailyTotals(exams, d, strategy);
+      b.actual += dt2.actual;
+      b.suggested += dt2.suggested;
+    }
+    const data: DayPoint[] = order.map((k) => ({
+      date: k,
+      label: formatWeekLabel(k),
+      minutes: buckets.get(k)!.actual,
+    }));
+    const referenceData: DayPoint[] = order.map((k) => ({
+      date: k,
+      label: formatWeekLabel(k),
+      minutes: buckets.get(k)!.suggested,
+    }));
+    const todayMonday = (() => {
+      const dt = parseYmd(today);
+      const dow = (dt.getDay() + 6) % 7;
+      dt.setDate(dt.getDate() - dow);
+      return ymd(dt);
+    })();
+    const idx = order.indexOf(todayMonday);
+    return { data, referenceData, todayIndex: idx >= 0 ? idx : undefined };
+  }, [exams, strategy, start, end, range, today]);
+
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center py-16">
-      <BarChart3 size={48} className="text-app-muted mb-4" />
-      <h2 className="text-lg font-semibold mb-2">Statistiche</h2>
-      <p className="text-[13px] text-app-muted max-w-sm">
-        In arrivo: ore di studio per esame, distribuzione settimanale, andamento mensile,
-        progresso verso gli obiettivi.
-      </p>
-      <span className="mt-4 text-[10.5px] font-bold uppercase tracking-wide text-app-muted bg-[#eef0f3] px-2 py-0.5 rounded">
-        Work in progress
-      </span>
+    <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+      <div className="stats-toolbar">
+        <RangeSelector value={range} onChange={setRange} />
+        <ChartModeToggle value={mode} onChange={setMode} />
+      </div>
+
+      <KpiCards exams={exams} today={today} rangeStart={start} rangeEnd={end} />
+
+      <TodayQuickLog exams={exams} today={today} />
+
+      <StudyChart
+        data={data}
+        referenceData={referenceData}
+        viewMode={mode}
+        todayIndex={todayIndex}
+        title="Effettivo vs Consigliato"
+        subtitle="tempo che hai loggato vs quello suggerito dalla formula"
+        animationKey={`${range}-${mode}`}
+      />
+
+      <YearHeatmap exams={exams} year={Number(today.slice(0, 4))} onDayClick={onDayClick} />
+
+      <PerExamBars exams={exams} rangeStart={start} rangeEnd={end} />
     </div>
   );
 }
