@@ -1,6 +1,7 @@
 import { Modal } from "./Modal";
+import { ModalButton } from "./ModalButton";
 import { useTheme } from "../theme";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Settings as SettingsIcon } from "lucide-react";
 
 interface SettingsModalProps {
   open: boolean;
@@ -10,55 +11,59 @@ interface SettingsModalProps {
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
 
+  const footer = (
+    <>
+      <div className="flex-1" />
+      <ModalButton variant="primary" onClick={onClose}>Fatto</ModalButton>
+    </>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} title="Impostazioni">
-      <div className="mb-4">
-        <label className="block text-[11px] font-bold text-app-muted uppercase tracking-wide mb-1.5">
-          Tema
-        </label>
-        <div className="flex gap-2">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Impostazioni"
+      icon={SettingsIcon}
+      size="sm"
+      footer={footer}
+    >
+      <div className="flex flex-col gap-2">
+        <div className="text-[11.5px] font-semibold text-app-muted">Tema</div>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setTheme("light")}
             className={
-              "flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-[12.5px] font-semibold border transition-colors " +
+              "flex flex-col items-center justify-center gap-2 px-3 py-[18px] " +
+              "rounded-[10px] text-[12.5px] font-semibold border transition-colors " +
               (theme === "light"
                 ? "bg-app-accent text-app-accent-fg border-app-accent"
                 : "bg-app-card text-app-fg border-app-input-border hover:bg-app-hover")
             }
           >
-            <Sun size={14} /> Chiaro
+            <Sun size={22} /> Chiaro
           </button>
           <button
             type="button"
             onClick={() => setTheme("dark")}
             className={
-              "flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-[12.5px] font-semibold border transition-colors " +
+              "flex flex-col items-center justify-center gap-2 px-3 py-[18px] " +
+              "rounded-[10px] text-[12.5px] font-semibold border transition-colors " +
               (theme === "dark"
                 ? "bg-app-accent text-app-accent-fg border-app-accent"
                 : "bg-app-card text-app-fg border-app-input-border hover:bg-app-hover")
             }
           >
-            <Moon size={14} /> Scuro
+            <Moon size={22} /> Scuro
           </button>
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-[11px] font-bold text-app-muted uppercase tracking-wide mb-1.5">
-          Profilo utente
-        </label>
-        <p className="text-[12px] text-app-muted leading-relaxed">
+      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
+        <div className="text-[11.5px] font-semibold text-app-muted">Profilo utente</div>
+        <p className="text-[12px] text-app-muted leading-relaxed m-0">
           In arrivo: nome, avatar, obiettivi di studio settimanali, sincronizzazione locale tra dispositivi.
         </p>
-      </div>
-
-      <div className="flex gap-2 mt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-app-accent text-app-accent-fg border border-app-accent hover:bg-app-accent-hover"
-        >Fatto</button>
       </div>
     </Modal>
   );
