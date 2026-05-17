@@ -58,6 +58,9 @@
   --color-exam-10: #1F8A4C;
   --color-exam-11: #7D5FFF;
   --color-exam-12: #E67E22;
+
+  /* Stats — colore "effettivo" del chart globale (distinto da accent) */
+  --color-stats-actual: #2E86C1;
 }
 
 .dark {
@@ -89,6 +92,8 @@
   --aurora-2: rgba(40, 100, 200, 0.40);
   --aurora-3: rgba(70, 130, 240, 0.30);
   --cell-band-sep: rgba(255, 255, 255, 0.10);
+
+  --color-stats-actual: #5fa9e8;
 }
 
 @layer base {
