@@ -25,6 +25,14 @@
   --color-app-accent-fg: #ffffff;
   --color-app-accent-hover: #0e1730;
 
+  /* Danger (delete actions) */
+  --color-app-danger: #c0392b;
+  --color-app-danger-soft: rgba(192, 57, 43, 0.10);
+  --color-app-danger-fg: #c0392b;
+
+  /* Focus ring (input + buttons) */
+  --color-app-focus-ring: rgba(70, 130, 240, 0.35);
+
   /* Ambient layer (Aurora) */
   --aurora-1: rgba(70, 130, 240, 0.20);
   --aurora-2: rgba(120, 180, 255, 0.15);
@@ -71,6 +79,12 @@
   --color-app-accent-fg: #060916;
   --color-app-accent-hover: #ffffff;
 
+  --color-app-danger: #ff6b5a;
+  --color-app-danger-soft: rgba(255, 107, 90, 0.15);
+  --color-app-danger-fg: #ff8b7d;
+
+  --color-app-focus-ring: rgba(70, 130, 240, 0.55);
+
   --aurora-1: rgba(70, 130, 240, 0.55);
   --aurora-2: rgba(40, 100, 200, 0.40);
   --aurora-3: rgba(70, 130, 240, 0.30);
@@ -98,9 +112,19 @@
     background: var(--color-app-input-bg);
     border: 1px solid var(--color-app-input-border);
     color: var(--color-app-fg);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .glass-input::placeholder {
     color: var(--color-app-muted);
+  }
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--color-app-accent);
+    box-shadow: 0 0 0 3px var(--color-app-focus-ring);
   }
 
   .lift-hover {
