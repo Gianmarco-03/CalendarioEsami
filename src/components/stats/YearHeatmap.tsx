@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Exam } from "../../types";
-import { dailyTotals } from "../../study-time";
+import { dailyTotals, type ExamFilter } from "../../study-time";
 import { useSuggestedStrategy } from "../../suggested-strategy";
 import { formatHM } from "../../study-time-format";
 import { ymd, parseYmd } from "../../date";
@@ -9,6 +9,7 @@ interface Props {
   exams: Exam[];
   year: number;
   onDayClick: (dayKey: string) => void;
+  filter?: ExamFilter;
 }
 
 const MONTH_LETTERS = ["G", "F", "M", "A", "M", "G", "L", "A", "S", "O", "N", "D"];
@@ -21,7 +22,7 @@ interface CellData {
   future: boolean;
 }
 
-export function YearHeatmap({ exams, year, onDayClick }: Props) {
+export function YearHeatmap({ exams, year, onDayClick, filter }: Props) {
   const strategy = useSuggestedStrategy();
   const today = ymd(new Date());
 
@@ -42,7 +43,7 @@ export function YearHeatmap({ exams, year, onDayClick }: Props) {
           week.push(null);
         } else {
           const key = ymd(cursor);
-          const { actual, suggested } = dailyTotals(exams, key, strategy);
+          const { actual, suggested } = dailyTotals(exams, key, strategy, filter);
           if (actual > maxActual) maxActual = actual;
           const future = key > today;
           week.push({ date: key, actual, suggested, level: 0, future });
@@ -75,7 +76,7 @@ export function YearHeatmap({ exams, year, onDayClick }: Props) {
     });
 
     return { weeks: cells, monthMarkers: monthCols };
-  }, [exams, year, strategy, today]);
+  }, [exams, year, strategy, today, filter]);
 
   return (
     <div className="heatmap-section">

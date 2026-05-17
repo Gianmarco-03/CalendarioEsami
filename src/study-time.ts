@@ -45,26 +45,35 @@ export function studiedDays(exam: Exam): string[] {
   return base;
 }
 
-/** Somma minuti effettivi del giorno across tutti gli esami attivi che studiano D. */
-export function dailyActual(allExams: Exam[], dayKey: string): number {
+/**
+ * Predicato per filtrare gli esami da aggregare. Default: tutti i non-passed.
+ * Per view per-esame: passare `e => e.id === selectedId`.
+ * `allExams` resta sempre il set completo (usato dal contesto strategy per t/n).
+ */
+export type ExamFilter = (e: Exam) => boolean;
+const defaultFilter: ExamFilter = (e) => !e.passed;
+
+/** Somma minuti effettivi del giorno across gli esami che matchano `filter` e studiano D. */
+export function dailyActual(allExams: Exam[], dayKey: string, filter: ExamFilter = defaultFilter): number {
   let sum = 0;
   for (const e of allExams) {
-    if (e.passed) continue;
+    if (!filter(e)) continue;
     if (!isStudying(e, dayKey)) continue;
     sum += actualMinutes(e, dayKey);
   }
   return sum;
 }
 
-/** Somma minuti consigliati del giorno (delegando alla strategia). */
+/** Somma minuti consigliati del giorno (delegando alla strategia). `allExams` per contesto t/n. */
 export function dailySuggested(
   allExams: Exam[],
   dayKey: string,
-  strategy: SuggestedStrategy
+  strategy: SuggestedStrategy,
+  filter: ExamFilter = defaultFilter
 ): number {
   let sum = 0;
   for (const e of allExams) {
-    if (e.passed) continue;
+    if (!filter(e)) continue;
     if (!isStudying(e, dayKey)) continue;
     sum += strategy.compute(e, dayKey, allExams);
   }
@@ -75,11 +84,12 @@ export function dailySuggested(
 export function dailyTotals(
   allExams: Exam[],
   dayKey: string,
-  strategy: SuggestedStrategy
+  strategy: SuggestedStrategy,
+  filter: ExamFilter = defaultFilter
 ): { actual: number; suggested: number } {
   return {
-    actual: dailyActual(allExams, dayKey),
-    suggested: dailySuggested(allExams, dayKey, strategy),
+    actual: dailyActual(allExams, dayKey, filter),
+    suggested: dailySuggested(allExams, dayKey, strategy, filter),
   };
 }
 
@@ -96,12 +106,12 @@ export function suggestedTotalMinutes(
 }
 
 /** Streak corrente: giorni consecutivi fino a oggi con dailyActual > 0. */
-export function currentStreak(allExams: Exam[], today: string): number {
+export function currentStreak(allExams: Exam[], today: string, filter: ExamFilter = defaultFilter): number {
   let count = 0;
   const cursor = parseYmd(today);
   while (count <= 365 * 3) {
     const key = ymd(cursor);
-    if (dailyActual(allExams, key) > 0) {
+    if (dailyActual(allExams, key, filter) > 0) {
       count++;
       cursor.setDate(cursor.getDate() - 1);
     } else break;
@@ -109,11 +119,11 @@ export function currentStreak(allExams: Exam[], today: string): number {
   return count;
 }
 
-/** Best streak su tutto lo storico (giorni con minuti > 0). */
-export function bestStreak(allExams: Exam[]): number {
+/** Best streak su tutto lo storico (giorni con minuti > 0) per gli esami filtrati. */
+export function bestStreak(allExams: Exam[], filter: ExamFilter = defaultFilter): number {
   const dates = new Set<string>();
   for (const e of allExams) {
-    if (e.passed) continue;
+    if (!filter(e)) continue;
     for (const sd of e.studyDays) {
       if ((sd.minutes ?? 0) > 0) dates.add(sd.date);
     }

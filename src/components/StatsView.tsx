@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useExams } from "../state";
 import { useSuggestedStrategy } from "../suggested-strategy";
-import { dailyTotals } from "../study-time";
+import { dailyTotals, type ExamFilter } from "../study-time";
 import { rangeDays } from "../study-time-format";
 import { ymd, parseYmd } from "../date";
 import { RangeSelector, resolveRange, type StatsRange } from "./stats/RangeSelector";
@@ -15,6 +15,7 @@ import "./stats/stats-chart.css";
 
 interface Props {
   onDayClick: (dayKey: string) => void;
+  selectedExamId: number | null;
 }
 
 const WEEKDAYS_SHORT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
@@ -32,18 +33,25 @@ function formatWeekLabel(mondayKey: string): string {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
 }
 
-export function StatsView({ onDayClick }: Props) {
+export function StatsView({ onDayClick, selectedExamId }: Props) {
   const { exams } = useExams();
   const strategy = useSuggestedStrategy();
   const today = ymd(new Date());
   const [range, setRange] = useState<StatsRange>("7g");
   const [mode, setMode] = useState<ChartMode>("line");
 
+  const filter: ExamFilter = useMemo(
+    () => selectedExamId == null
+      ? (e) => !e.passed
+      : (e) => e.id === selectedExamId,
+    [selectedExamId]
+  );
+
   const { start, end } = useMemo(() => {
     if (range !== "tutto") return resolveRange(range, today);
     const allDates: string[] = [];
     for (const e of exams) {
-      if (e.passed) continue;
+      if (!filter(e)) continue;
       for (const sd of e.studyDays) {
         if ((sd.minutes ?? 0) > 0) allDates.push(sd.date);
       }
@@ -51,7 +59,7 @@ export function StatsView({ onDayClick }: Props) {
     if (allDates.length === 0) return { start: today, end: today };
     allDates.sort();
     return { start: allDates[0], end: today };
-  }, [range, today, exams]);
+  }, [range, today, exams, filter]);
 
   const { data, referenceData, todayIndex } = useMemo(() => {
     const days = rangeDays(start, end);
@@ -60,12 +68,12 @@ export function StatsView({ onDayClick }: Props) {
       const data: DayPoint[] = days.map((d) => ({
         date: d,
         label: formatDayLabel(d, range),
-        minutes: dailyTotals(exams, d, strategy).actual,
+        minutes: dailyTotals(exams, d, strategy, filter).actual,
       }));
       const referenceData: DayPoint[] = days.map((d) => ({
         date: d,
         label: formatDayLabel(d, range),
-        minutes: dailyTotals(exams, d, strategy).suggested,
+        minutes: dailyTotals(exams, d, strategy, filter).suggested,
       }));
       const idx = days.indexOf(today);
       return { data, referenceData, todayIndex: idx >= 0 ? idx : undefined };
@@ -82,7 +90,7 @@ export function StatsView({ onDayClick }: Props) {
         order.push(key);
       }
       const b = buckets.get(key)!;
-      const dt2 = dailyTotals(exams, d, strategy);
+      const dt2 = dailyTotals(exams, d, strategy, filter);
       b.actual += dt2.actual;
       b.suggested += dt2.suggested;
     }
@@ -104,7 +112,7 @@ export function StatsView({ onDayClick }: Props) {
     })();
     const idx = order.indexOf(todayMonday);
     return { data, referenceData, todayIndex: idx >= 0 ? idx : undefined };
-  }, [exams, strategy, start, end, range, today]);
+  }, [exams, strategy, start, end, range, today, filter]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto pr-2">
@@ -112,9 +120,16 @@ export function StatsView({ onDayClick }: Props) {
         <RangeSelector value={range} onChange={setRange} />
       </div>
 
-      <KpiCards exams={exams} today={today} rangeStart={start} rangeEnd={end} />
+      <KpiCards
+        exams={exams}
+        today={today}
+        rangeStart={start}
+        rangeEnd={end}
+        filter={filter}
+        selectedExamId={selectedExamId}
+      />
 
-      <TodayQuickLog exams={exams} today={today} />
+      <TodayQuickLog exams={exams} today={today} selectedExamId={selectedExamId} />
 
       <StudyChart
         data={data}
@@ -123,13 +138,22 @@ export function StatsView({ onDayClick }: Props) {
         onViewModeChange={setMode}
         todayIndex={todayIndex}
         title="Effettivo vs Consigliato"
-        subtitle="tempo che hai loggato vs quello suggerito dalla formula"
-        animationKey={`${range}-${mode}`}
+        subtitle={selectedExamId == null
+          ? "tempo che hai loggato vs quello suggerito dalla formula"
+          : "vista filtrata sull'esame selezionato"}
+        animationKey={`${range}-${mode}-${selectedExamId ?? "all"}`}
       />
 
-      <YearHeatmap exams={exams} year={Number(today.slice(0, 4))} onDayClick={onDayClick} />
+      <YearHeatmap
+        exams={exams}
+        year={Number(today.slice(0, 4))}
+        onDayClick={onDayClick}
+        filter={filter}
+      />
 
-      <PerExamBars exams={exams} rangeStart={start} rangeEnd={end} />
+      {selectedExamId == null && (
+        <PerExamBars exams={exams} rangeStart={start} rangeEnd={end} />
+      )}
     </div>
   );
 }

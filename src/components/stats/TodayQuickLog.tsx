@@ -9,19 +9,20 @@ import { isProgetto } from "../../progetto";
 interface Props {
   exams: Exam[];
   today: string;
+  selectedExamId?: number | null;
 }
 
-export function TodayQuickLog({ exams, today }: Props) {
+export function TodayQuickLog({ exams, today, selectedExamId }: Props) {
   const { setStudyDayMinutes, toggleStudyDay } = useExams();
   const strategy = useSuggestedStrategy();
   const [open, setOpen] = useState(true);
 
-  // Tutti gli esami/progetti attivi (non-passed).
-  // - Esami: sempre loggabili (auto-toggle implicito).
-  // - Progetti con range coprente oggi: loggabili.
-  // - Progetti fuori range: visibili ma disabilitati (per design non si possono loggare
-  //   fuori dal proprio range — il loro "studio" è implicito dal periodo).
-  const items = exams.filter((e) => !e.passed);
+  // Filtra: tutti gli attivi (non-passed) o solo quello selezionato.
+  const items = exams.filter((e) => {
+    if (e.passed) return false;
+    if (selectedExamId != null) return e.id === selectedExamId;
+    return true;
+  });
   const projectInRange = (e: Exam): boolean =>
     !isProgetto(e) || e.ranges.some((r) => today >= r.start && today <= r.end);
 

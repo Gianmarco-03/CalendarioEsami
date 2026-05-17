@@ -1,6 +1,6 @@
-import { Flame, Clock, TrendingUp, GraduationCap } from "lucide-react";
+import { Flame, Clock, TrendingUp, GraduationCap, CalendarCheck } from "lucide-react";
 import type { Exam } from "../../types";
-import { dailyActual, currentStreak, bestStreak } from "../../study-time";
+import { dailyActual, currentStreak, bestStreak, type ExamFilter } from "../../study-time";
 import { rangeDays, formatHM } from "../../study-time-format";
 
 interface Props {
@@ -8,16 +8,26 @@ interface Props {
   today: string;
   rangeStart: string;
   rangeEnd: string;
+  filter: ExamFilter;
+  selectedExamId: number | null;
 }
 
-export function KpiCards({ exams, today, rangeStart, rangeEnd }: Props) {
-  const streak = currentStreak(exams, today);
-  const best = bestStreak(exams);
+export function KpiCards({ exams, today, rangeStart, rangeEnd, filter, selectedExamId }: Props) {
+  const streak = currentStreak(exams, today, filter);
+  const best = bestStreak(exams, filter);
   const days = rangeDays(rangeStart, rangeEnd);
-  const totalActual = days.reduce((s, d) => s + dailyActual(exams, d), 0);
+  const totalActual = days.reduce((s, d) => s + dailyActual(exams, d, filter), 0);
   const avgPerDay = days.length > 0 ? Math.round(totalActual / days.length) : 0;
+
+  // 4° KPI dipende dal contesto:
+  // - Globale → "Esami passati X/Y"
+  // - Singolo esame → "Giorni studiati N" (in totale, life-time)
+  const selectedExam = selectedExamId != null ? exams.find((e) => e.id === selectedExamId) : null;
   const passed = exams.filter((e) => e.passed).length;
   const total = exams.length;
+  const studiedDaysCount = selectedExam
+    ? selectedExam.studyDays.filter((sd) => (sd.minutes ?? 0) > 0).length
+    : 0;
 
   return (
     <div className="kpi-strip">
@@ -48,13 +58,23 @@ export function KpiCards({ exams, today, rangeStart, rangeEnd }: Props) {
         <div className="kpi-value">{formatHM(avgPerDay) || "0"}</div>
       </div>
 
-      <div className="kpi-card">
-        <div className="kpi-head">
-          <div className="kpi-icon-wrap"><GraduationCap size={15} /></div>
-          <span className="kpi-label">Esami passati</span>
+      {selectedExam ? (
+        <div className="kpi-card">
+          <div className="kpi-head">
+            <div className="kpi-icon-wrap"><CalendarCheck size={15} /></div>
+            <span className="kpi-label">Giorni studiati</span>
+          </div>
+          <div className="kpi-value">{studiedDaysCount}<span className="kpi-unit">{selectedExam.passed ? "completato" : "in corso"}</span></div>
         </div>
-        <div className="kpi-value">{passed}<span className="kpi-unit">di {total}</span></div>
-      </div>
+      ) : (
+        <div className="kpi-card">
+          <div className="kpi-head">
+            <div className="kpi-icon-wrap"><GraduationCap size={15} /></div>
+            <span className="kpi-label">Esami passati</span>
+          </div>
+          <div className="kpi-value">{passed}<span className="kpi-unit">di {total}</span></div>
+        </div>
+      )}
     </div>
   );
 }

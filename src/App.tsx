@@ -11,7 +11,8 @@ import { TodoView } from "./components/TodoView";
 import { SettingsModal } from "./components/SettingsModal";
 import type { AppSection } from "./components/SectionSwitcher";
 import type { ExamKind } from "./types";
-import { CalendarDays, BarChart3, ListTodo } from "lucide-react";
+import { CalendarDays, BarChart3, ListTodo, Globe } from "lucide-react";
+import { iconFor } from "./exam-icons";
 
 const SECTION_META: Record<AppSection, { label: string; Icon: typeof CalendarDays }> = {
   calendar: { label: "Calendario Appelli e Studio", Icon: CalendarDays },
@@ -28,8 +29,15 @@ function Shell() {
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [section, setSection] = useState<AppSection>("calendar");
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
   const editing = editingId !== null ? exams.find((e) => e.id === editingId) ?? null : null;
+  const selectedExam = selectedExamId != null ? exams.find((e) => e.id === selectedExamId) ?? null : null;
+
+  // Reset selezione quando l'esame viene eliminato o quando esci dalla sezione stats.
+  if (selectedExamId != null && !selectedExam) {
+    setSelectedExamId(null);
+  }
 
   const openCreate = (k: ExamKind) => {
     setEditingId(null);
@@ -71,15 +79,14 @@ function Shell() {
           onEdit={openEdit}
           onImport={() => setImportOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
+          selectedExamId={selectedExamId}
+          onSelectExam={setSelectedExamId}
         />
         <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl glass-panel shadow-sm p-4 overflow-hidden">
-          <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
-            {(() => { const I = SECTION_META[section].Icon; return <I size={18} />; })()}
-            {SECTION_META[section].label}
-          </h1>
+          <StatsHeroTitle section={section} selectedExam={selectedExam} />
           <div key={section} className="flex-1 min-h-0 flex flex-col animate-[fade-in_220ms_ease-out]">
             {section === "calendar" && <Calendar onDayClick={setDayKey} />}
-            {section === "stats" && <StatsView onDayClick={setDayKey} />}
+            {section === "stats" && <StatsView onDayClick={setDayKey} selectedExamId={selectedExamId} />}
             {section === "todo" && <TodoView />}
           </div>
         </main>
@@ -94,6 +101,43 @@ function Shell() {
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
+  );
+}
+
+function StatsHeroTitle({
+  section, selectedExam,
+}: {
+  section: AppSection;
+  selectedExam: ReturnType<typeof useExams>["exams"][number] | null;
+}) {
+  if (section !== "stats") {
+    const I = SECTION_META[section].Icon;
+    return (
+      <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
+        <I size={18} />
+        {SECTION_META[section].label}
+      </h1>
+    );
+  }
+  if (selectedExam) {
+    const I = iconFor(selectedExam.icon);
+    return (
+      <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
+        <span className="w-3 h-3 rounded-full shrink-0" style={{ background: selectedExam.color }} />
+        <I size={16} style={{ color: selectedExam.color }} />
+        <span>{selectedExam.name}</span>
+        <span className="text-[11px] text-app-muted font-normal ml-2">
+          {selectedExam.kind === "progetto" ? "progetto" : "esame"}
+        </span>
+      </h1>
+    );
+  }
+  return (
+    <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
+      <Globe size={18} />
+      Globale
+      <span className="text-[11px] text-app-muted font-normal ml-2">tutti gli esami attivi</span>
+    </h1>
   );
 }
 

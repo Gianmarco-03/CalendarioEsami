@@ -1,6 +1,6 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
-import { Plus, Upload, Search, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Upload, Search, Settings as SettingsIcon, Globe } from "lucide-react";
 import { SectionSwitcher, type AppSection } from "./SectionSwitcher";
 
 interface SidebarProps {
@@ -10,12 +10,18 @@ interface SidebarProps {
   onEdit: (id: number) => void;
   onImport: () => void;
   onOpenSettings: () => void;
+  selectedExamId?: number | null;
+  onSelectExam?: (id: number | null) => void;
 }
 
-export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onOpenSettings }: SidebarProps) {
+export function Sidebar({
+  section, onSectionChange, onAdd, onEdit, onImport, onOpenSettings,
+  selectedExamId, onSelectExam,
+}: SidebarProps) {
   const { exams, loading, searchQuery, setSearchQuery } = useExams();
   const active = exams.filter((e) => !e.passed);
   const passed = exams.filter((e) => e.passed);
+  const statsMode = section === "stats" && !!onSelectExam;
 
   return (
     <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl glass-panel shadow-sm p-4 flex flex-col">
@@ -38,6 +44,18 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onO
       </div>
 
       <div>
+        {statsMode && (
+          <button
+            type="button"
+            onClick={() => onSelectExam?.(null)}
+            className={"globale-row" + (selectedExamId == null ? " selected" : "")}
+            aria-pressed={selectedExamId == null}
+          >
+            <Globe size={14} />
+            <span className="globale-row-label">Globale</span>
+            <span className="globale-row-meta">tutti</span>
+          </button>
+        )}
         {loading && <div className="text-[12px] text-app-muted">Caricamento…</div>}
         {!loading && active.length === 0 && exams.length === 0 && (
           <div className="text-[12px] text-app-muted py-1.5">
@@ -47,7 +65,15 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onO
         {!loading && active.length === 0 && exams.length > 0 && searchQuery.trim() && (
           <div className="text-[12px] text-app-muted py-1.5">Nessun esame attivo corrisponde alla ricerca.</div>
         )}
-        {active.map((e) => <ExamRow key={e.id} exam={e} onEdit={onEdit} />)}
+        {active.map((e) => (
+          <ExamRow
+            key={e.id}
+            exam={e}
+            onEdit={onEdit}
+            selected={statsMode && selectedExamId === e.id}
+            onSelect={statsMode ? () => onSelectExam?.(selectedExamId === e.id ? null : e.id) : undefined}
+          />
+        ))}
       </div>
 
       <div className="flex gap-2 mt-1">
@@ -74,7 +100,15 @@ export function Sidebar({ section, onSectionChange, onAdd, onEdit, onImport, onO
       {passed.length > 0 && (
         <div className="mt-4">
           <div className="text-[11px] font-bold text-app-muted uppercase tracking-wide mb-2">Completati</div>
-          {passed.map((e) => <ExamRow key={e.id} exam={e} onEdit={onEdit} />)}
+          {passed.map((e) => (
+            <ExamRow
+              key={e.id}
+              exam={e}
+              onEdit={onEdit}
+              selected={statsMode && selectedExamId === e.id}
+              onSelect={statsMode ? () => onSelectExam?.(selectedExamId === e.id ? null : e.id) : undefined}
+            />
+          ))}
         </div>
       )}
 

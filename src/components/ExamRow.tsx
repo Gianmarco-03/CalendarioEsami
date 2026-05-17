@@ -10,6 +10,8 @@ import { iconFor } from "../exam-icons";
 interface ExamRowProps {
   exam: Exam;
   onEdit: (id: number) => void;
+  selected?: boolean;
+  onSelect?: () => void;
 }
 
 function metaText(exam: Exam, allExams: Exam[], strategy: SuggestedStrategy): string {
@@ -25,7 +27,7 @@ function metaText(exam: Exam, allExams: Exam[], strategy: SuggestedStrategy): st
   return time ? `${nApp}·${time}` : `${nApp}`;
 }
 
-export function ExamRow({ exam, onEdit }: ExamRowProps) {
+export function ExamRow({ exam, onEdit, selected, onSelect }: ExamRowProps) {
   const { setPassed, remove, exams } = useExams();
   const strategy = useSuggestedStrategy();
   const Icon = iconFor(exam.icon);
@@ -34,12 +36,19 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
     "exam-row-redesign",
     "lift-hover",
     exam.passed ? "passed" : "",
+    selected ? "selected" : "",
+    onSelect ? "selectable" : "",
   ].filter(Boolean).join(" ");
+
+  const handleRowClick = onSelect ? () => onSelect() : undefined;
 
   return (
     <div
       className={classes}
       style={{ ["--ec" as string]: exam.color } as React.CSSProperties}
+      onClick={handleRowClick}
+      role={onSelect ? "button" : undefined}
+      aria-pressed={onSelect ? selected : undefined}
     >
       <span className="exam-row-redesign-stripe" />
       <Icon className="exam-row-redesign-icon" size={14} />
@@ -48,6 +57,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
       <label
         className="flex items-center cursor-pointer shrink-0"
         title={exam.kind === "progetto" ? "Segna come completato" : "Segna come superato"}
+        onClick={(e) => e.stopPropagation()}
       >
         <input
           type="checkbox"
@@ -59,7 +69,7 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
       <div className="exam-row-redesign-actions">
         <button
           type="button"
-          onClick={() => onEdit(exam.id)}
+          onClick={(e) => { e.stopPropagation(); onEdit(exam.id); }}
           title="Modifica"
           aria-label="Modifica"
         ><Pencil size={13} /></button>
@@ -67,7 +77,8 @@ export function ExamRow({ exam, onEdit }: ExamRowProps) {
           type="button"
           title="Elimina"
           aria-label="Elimina"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
           }}
         ><Trash2 size={13} /></button>
