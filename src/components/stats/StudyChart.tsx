@@ -19,6 +19,8 @@ interface Props {
   title?: string;
   subtitle?: string;
   animationKey?: string | number;
+  /** Override del colore "actual" (default: var(--color-stats-actual)). */
+  accentColor?: string;
 }
 
 const SVG_W = 800;
@@ -83,7 +85,7 @@ function decimateLabels(data: DayPoint[]): string[] {
   return data.map((d, i) => (i % stride === 0 ? d.label : ""));
 }
 
-export function StudyChart({ data, referenceData, viewMode, onViewModeChange, todayIndex, title, subtitle, animationKey }: Props) {
+export function StudyChart({ data, referenceData, viewMode, onViewModeChange, todayIndex, title, subtitle, animationKey, accentColor }: Props) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [chartVisible, setChartVisible] = useState(false);
   const lineRef = useRef<SVGPathElement | null>(null);
@@ -183,8 +185,13 @@ export function StudyChart({ data, referenceData, viewMode, onViewModeChange, to
   const baseY = PT + CH;
   const tIdx = todayIndex !== undefined && todayIndex >= 0 && todayIndex < pts.length ? todayIndex : -1;
 
+  // Quando accentColor è fornito, override la CSS variable solo nello scope di questo chart.
+  const containerStyle = accentColor
+    ? ({ ["--color-stats-actual" as string]: accentColor } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="stats-chart">
+    <div className="stats-chart" style={containerStyle}>
       {(title || subtitle || onViewModeChange) && (
         <div className="stats-chart__head">
           <div>

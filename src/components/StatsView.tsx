@@ -46,6 +46,8 @@ export function StatsView({ onDayClick, selectedExamId }: Props) {
       : (e) => e.id === selectedExamId,
     [selectedExamId]
   );
+  const selectedExam = selectedExamId != null ? exams.find((e) => e.id === selectedExamId) : undefined;
+  const accentColor = selectedExam?.color;
 
   const { start, end } = useMemo(() => {
     if (range !== "tutto") return resolveRange(range, today);
@@ -142,6 +144,7 @@ export function StatsView({ onDayClick, selectedExamId }: Props) {
           ? "tempo che hai loggato vs quello suggerito dalla formula"
           : "vista filtrata sull'esame selezionato"}
         animationKey={`${range}-${mode}-${selectedExamId ?? "all"}`}
+        accentColor={accentColor}
       />
 
       <YearHeatmap
@@ -149,6 +152,7 @@ export function StatsView({ onDayClick, selectedExamId }: Props) {
         year={Number(today.slice(0, 4))}
         onDayClick={onDayClick}
         filter={filter}
+        accentColor={accentColor}
       />
 
       {selectedExamId == null && (

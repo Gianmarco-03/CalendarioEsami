@@ -10,6 +10,8 @@ interface Props {
   year: number;
   onDayClick: (dayKey: string) => void;
   filter?: ExamFilter;
+  /** Quando fornito, le celle usano questo colore (con varianti di alpha). */
+  accentColor?: string;
 }
 
 const MONTH_LETTERS = ["G", "F", "M", "A", "M", "G", "L", "A", "S", "O", "N", "D"];
@@ -22,9 +24,17 @@ interface CellData {
   future: boolean;
 }
 
-export function YearHeatmap({ exams, year, onDayClick, filter }: Props) {
+export function YearHeatmap({ exams, year, onDayClick, filter, accentColor }: Props) {
   const strategy = useSuggestedStrategy();
   const today = ymd(new Date());
+
+  // Quando accentColor è fornito, le 5 classi hm-* sono sovrascritte inline
+  // (color-mix per le tinte intermedie + colore pieno al livello 4).
+  const cellStyleFor = (level: 0 | 1 | 2 | 3 | 4): React.CSSProperties | undefined => {
+    if (!accentColor) return undefined;
+    const alphaByLevel = ["0.08", "0.30", "0.55", "0.80", "1"][level];
+    return { background: `color-mix(in srgb, ${accentColor} ${Number(alphaByLevel) * 100}%, transparent)` };
+  };
 
   const { weeks, monthMarkers } = useMemo(() => {
     const jan1 = new Date(year, 0, 1);
@@ -85,11 +95,11 @@ export function YearHeatmap({ exams, year, onDayClick, filter }: Props) {
         <div className="heatmap-legend">
           meno
           <div className="heatmap-legend-cells">
-            <div className="hm-cell hm-0" />
-            <div className="hm-cell hm-1" />
-            <div className="hm-cell hm-2" />
-            <div className="hm-cell hm-3" />
-            <div className="hm-cell hm-4" />
+            <div className="hm-cell hm-0" style={cellStyleFor(0)} />
+            <div className="hm-cell hm-1" style={cellStyleFor(1)} />
+            <div className="hm-cell hm-2" style={cellStyleFor(2)} />
+            <div className="hm-cell hm-3" style={cellStyleFor(3)} />
+            <div className="hm-cell hm-4" style={cellStyleFor(4)} />
           </div>
           più
         </div>
@@ -103,7 +113,7 @@ export function YearHeatmap({ exams, year, onDayClick, filter }: Props) {
           <div key={`mh-${i}`} className="heatmap-month">{m ?? ""}</div>
         ))}
         {[0, 1, 2, 3, 4, 5, 6].map((row) => (
-          <RowFragment key={row} row={row} weeks={weeks} onDayClick={onDayClick} />
+          <RowFragment key={row} row={row} weeks={weeks} onDayClick={onDayClick} cellStyleFor={cellStyleFor} />
         ))}
       </div>
     </div>
@@ -111,11 +121,12 @@ export function YearHeatmap({ exams, year, onDayClick, filter }: Props) {
 }
 
 function RowFragment({
-  row, weeks, onDayClick,
+  row, weeks, onDayClick, cellStyleFor,
 }: {
   row: number;
   weeks: (CellData | null)[][];
   onDayClick: (d: string) => void;
+  cellStyleFor: (level: 0 | 1 | 2 | 3 | 4) => React.CSSProperties | undefined;
 }) {
   const labels = ["", "M", "", "G", "", "S", ""];
   return (
@@ -127,10 +138,12 @@ function RowFragment({
         const title = cell.future
           ? cell.date
           : `${cell.date} · ${formatHM(cell.actual) || "0m"} studiati${cell.suggested > 0 ? ` (consigliato ${formatHM(cell.suggested)})` : ""}`;
+        const level = cell.future ? 0 : cell.level;
         return (
           <div
             key={`${wi}-${row}`}
-            className={`hm-cell hm-${cell.future ? 0 : cell.level}`}
+            className={`hm-cell hm-${level}`}
+            style={cellStyleFor(level)}
             title={title}
             onClick={() => !cell.future && onDayClick(cell.date)}
             role="button"

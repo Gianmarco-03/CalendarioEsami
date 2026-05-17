@@ -122,21 +122,27 @@ function StatsHeroTitle({
   if (selectedExam) {
     const I = iconFor(selectedExam.icon);
     return (
-      <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
-        <span className="w-3 h-3 rounded-full shrink-0" style={{ background: selectedExam.color }} />
-        <I size={16} style={{ color: selectedExam.color }} />
-        <span>{selectedExam.name}</span>
-        <span className="text-[11px] text-app-muted font-normal ml-2">
+      <h1 className="flex items-center gap-3 text-2xl font-bold mb-4 shrink-0 tracking-tight">
+        <span
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: selectedExam.color, boxShadow: `0 0 0 3px ${selectedExam.color}33` }}
+        >
+          <I size={18} style={{ color: "#fff" }} />
+        </span>
+        <span style={{ color: selectedExam.color }}>{selectedExam.name}</span>
+        <span className="text-[12px] text-app-muted font-medium uppercase tracking-wider ml-1">
           {selectedExam.kind === "progetto" ? "progetto" : "esame"}
         </span>
       </h1>
     );
   }
   return (
-    <h1 className="flex items-center gap-2 text-base font-semibold mb-3 shrink-0">
-      <Globe size={18} />
+    <h1 className="flex items-center gap-3 text-2xl font-bold mb-4 shrink-0 tracking-tight">
+      <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-app-accent text-app-accent-fg">
+        <Globe size={18} />
+      </span>
       Globale
-      <span className="text-[11px] text-app-muted font-normal ml-2">tutti gli esami attivi</span>
+      <span className="text-[12px] text-app-muted font-medium uppercase tracking-wider ml-1">tutti gli esami attivi</span>
     </h1>
   );
 }
