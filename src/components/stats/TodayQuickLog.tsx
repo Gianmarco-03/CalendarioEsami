@@ -16,16 +16,14 @@ export function TodayQuickLog({ exams, today }: Props) {
   const strategy = useSuggestedStrategy();
   const [open, setOpen] = useState(true);
 
-  // Esami attivi mostrabili oggi:
-  // - Esami non-passed (always loggable: auto-toggle se non in studio).
-  // - Progetti con range coprente oggi (loggabili). Progetti fuori range esclusi.
-  const items = exams.filter((e) => {
-    if (e.passed) return false;
-    if (isProgetto(e)) {
-      return e.ranges.some((r) => today >= r.start && today <= r.end);
-    }
-    return true;
-  });
+  // Tutti gli esami/progetti attivi (non-passed).
+  // - Esami: sempre loggabili (auto-toggle implicito).
+  // - Progetti con range coprente oggi: loggabili.
+  // - Progetti fuori range: visibili ma disabilitati (per design non si possono loggare
+  //   fuori dal proprio range — il loro "studio" è implicito dal periodo).
+  const items = exams.filter((e) => !e.passed);
+  const projectInRange = (e: Exam): boolean =>
+    !isProgetto(e) || e.ranges.some((r) => today >= r.start && today <= r.end);
 
   return (
     <div className="quick-log">
@@ -56,6 +54,7 @@ export function TodayQuickLog({ exams, today }: Props) {
                 today={today}
                 exams={exams}
                 studying={isStudying(e, today)}
+                disabled={!projectInRange(e)}
                 strategy={strategy}
                 onToggle={() => void toggleStudyDay(e.id, today)}
                 onSetMinutes={(m) => void setStudyDayMinutes(e.id, today, m)}
@@ -73,12 +72,13 @@ interface RowProps {
   today: string;
   exams: Exam[];
   studying: boolean;
+  disabled: boolean;
   strategy: { compute: (e: Exam, d: string, all: Exam[]) => number };
   onToggle: () => void;
   onSetMinutes: (m: number | null) => void;
 }
 
-function QuickLogRow({ exam, today, exams, studying, strategy, onToggle, onSetMinutes }: RowProps) {
+function QuickLogRow({ exam, today, exams, studying, disabled, strategy, onToggle, onSetMinutes }: RowProps) {
   const current = actualMinutes(exam, today);
   const suggested = strategy.compute(exam, today, exams);
   const isProj = isProgetto(exam);
@@ -89,22 +89,27 @@ function QuickLogRow({ exam, today, exams, studying, strategy, onToggle, onSetMi
     // Per esami non-studying: prima toggle, poi set minuti.
     // Per progetti in-range: l'upsert backend gestisce direttamente.
     if (!studying && !isProj && m !== null) {
-      // Toggle implicito (fire-and-forget). Il refetch del state.tsx aggiornerà la UI.
       onToggle();
-      // Aspetta un tick prima del set per evitare race con il refetch interno.
       setTimeout(() => onSetMinutes(m), 50);
     } else {
       onSetMinutes(m);
     }
   };
 
+  const className = "ql-item" + (disabled ? " ql-item--disabled" : "");
+
   return (
-    <div className="ql-item">
+    <div className={className}>
       <span className="ql-stripe" style={{ background: exam.color }} />
       <span className="ql-name">{exam.name}</span>
-      {!studying && !isProj && (
+      {!studying && !isProj && !disabled && (
         <span className="ql-hint" title="Verrà attivato lo studio per oggi quando inserisci i minuti">
           <Plus size={11} /> nuovo
+        </span>
+      )}
+      {disabled && (
+        <span className="ql-hint" title="Il range del progetto non copre oggi — non puoi loggare studio fuori dal periodo">
+          fuori range
         </span>
       )}
       <input
@@ -114,12 +119,15 @@ function QuickLogRow({ exam, today, exams, studying, strategy, onToggle, onSetMi
         step={5}
         className="ql-input"
         defaultValue={current > 0 ? current : ""}
-        placeholder={String(suggested)}
+        placeholder={disabled ? "—" : String(suggested)}
+        disabled={disabled}
         onBlur={handleBlur}
         aria-label={`Minuti studiati per ${exam.name}`}
       />
       <span className="ql-min">m</span>
-      <span className="ql-suggested">consigliato {suggested}m</span>
+      <span className="ql-suggested">
+        {disabled ? "—" : `consigliato ${suggested}m`}
+      </span>
     </div>
   );
 }

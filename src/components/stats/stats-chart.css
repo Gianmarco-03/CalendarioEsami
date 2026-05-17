@@ -244,6 +244,12 @@
   background: var(--color-app-soft);
   border-radius: 4px;
 }
+.ql-item--disabled {
+  opacity: 0.55;
+}
+.ql-item--disabled .ql-input {
+  cursor: not-allowed;
+}
 
 /* ============ Study Chart container ============ */
 .stats-chart {
