@@ -3,6 +3,8 @@ import { importArtifactJson } from "../db";
 import { useExams } from "../state";
 import { useToast } from "../toast";
 import { Modal } from "./Modal";
+import { ModalButton } from "./ModalButton";
+import { Download } from "lucide-react";
 
 interface ImportModalProps {
   open: boolean;
@@ -34,32 +36,37 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
     }
   };
 
+  const footer = (
+    <>
+      <div className="flex-1" />
+      <ModalButton variant="secondary" onClick={onClose}>Annulla</ModalButton>
+      <ModalButton variant="primary" disabled={busy} onClick={handleImport}>
+        {busy ? "Importazione…" : "Importa"}
+      </ModalButton>
+    </>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} title="Importa da artifact">
-      <p className="text-[11.5px] text-app-muted mb-2 leading-relaxed">
-        Incolla il valore di <code className="bg-[#eef0f3] rounded px-1">appelliStudio_v1</code> dal
-        localStorage dell'artifact HTML. Le voci con nome già presente verranno saltate.
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Importa da artifact"
+      icon={Download}
+      size="xl"
+      footer={footer}
+    >
+      <p className="text-[11.5px] text-app-muted leading-relaxed m-0">
+        Incolla il valore di{" "}
+        <code className="bg-app-soft rounded px-1 py-[1px] text-[10.5px]">appelliStudio_v1</code>{" "}
+        dal localStorage dell'artifact HTML. Le voci con nome già presente verranno saltate.
       </p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder='{"exams":[…]}'
-        rows={10}
-        className="w-full px-2 py-2 border border-[#d6d9e0] rounded-lg text-[12px] font-mono"
+        rows={9}
+        className="glass-input font-mono resize-y"
       />
-      <div className="flex gap-2 mt-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-[#d6d9e0] bg-white text-[#2f3545] hover:bg-[#f4f5f7]"
-        >Annulla</button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={handleImport}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[#2f3545] text-white border border-[#2f3545] hover:bg-[#1f2430] disabled:opacity-50"
-        >{busy ? "Importazione…" : "Importa"}</button>
-      </div>
     </Modal>
   );
 }
