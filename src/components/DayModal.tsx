@@ -3,7 +3,7 @@ import { inRange, parseYmd } from "../date";
 import { Modal } from "./Modal";
 import { ModalButton } from "./ModalButton";
 import { Clock, Calendar } from "lucide-react";
-import { effectiveMinutes, countPresences } from "../study-time";
+import { useSuggestedStrategy } from "../suggested-strategy";
 import { isProgetto } from "../progetto";
 
 interface DayModalProps {
@@ -14,6 +14,7 @@ interface DayModalProps {
 
 export function DayModal({ open, dayKey, onClose }: DayModalProps) {
   const { exams, toggleStudyDay, setStudyDayMinutes } = useExams();
+  const strategy = useSuggestedStrategy();
   if (!dayKey) return null;
 
   const date = parseYmd(dayKey);
@@ -78,10 +79,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
           {studyTargets.map((e) => {
             const studyEntry = e.studyDays.find((s) => s.date === dayKey);
             const studying = !!studyEntry;
-            const computed = effectiveMinutes(e, dayKey, active);
-            const t = e.defaultStudyMinutes;
-            const n = countPresences(dayKey, active);
-            const isOverride = studyEntry?.minutes != null;
+            const suggested = strategy.compute(e, dayKey, active);
             return (
               <div
                 key={e.id}
@@ -101,7 +99,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
                       min={0}
                       max={1440}
                       step={5}
-                      placeholder={String(computed)}
+                      placeholder={String(suggested)}
                       value={studyEntry.minutes ?? ""}
                       onChange={(ev) => {
                         const raw = ev.target.value;
@@ -109,15 +107,15 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
                         void setStudyDayMinutes(e.id, dayKey, m);
                       }}
                       className="w-14 glass-input !py-1 !px-1.5 !text-[12px]"
-                      aria-label={`Minuti di studio per ${e.name}`}
+                      aria-label={`Minuti studiati per ${e.name}`}
                       title={
-                        isOverride
-                          ? `Manuale (formula: ${computed}m = ${t}/${n})`
-                          : `Auto (${computed}m = ${t}/${n}). Modifica per override.`
+                        studyEntry.minutes != null
+                          ? `Hai studiato ${studyEntry.minutes} min. Consigliato: ${suggested}m`
+                          : `Consigliato: ${suggested}m. Inserisci quanto hai studiato.`
                       }
                     />
                     <span className="text-[9.5px] whitespace-nowrap">
-                      {isOverride ? "manuale" : `auto ${computed}m`}
+                      consigliato {suggested}m
                     </span>
                   </div>
                 )}

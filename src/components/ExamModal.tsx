@@ -4,9 +4,13 @@ import { useExams } from "../state";
 import { useToast } from "../toast";
 import { Modal } from "./Modal";
 import { ModalButton } from "./ModalButton";
-import { X as XIcon, Plus, Pencil } from "lucide-react";
-import { durationOptions } from "../study-time";
+import { X as XIcon, Plus, Minus, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { isProgetto } from "../progetto";
+import { formatHM } from "../study-time-format";
+import { EXAM_ICONS, DEFAULT_ICON_SLUG, FEATURED_ICON_SLUGS } from "../exam-icons";
+
+const STUDY_STEP_MIN = 15;
+const STUDY_MAX_MIN = 720;
 
 const PALETTE = [
   "#E8543F", "#2E86C1", "#27AE60", "#8E44AD", "#F39C12", "#16A0A0",
@@ -34,6 +38,9 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
 
   const [name, setName] = useState("");
   const [color, setColor] = useState(PALETTE[0]);
+  const [icon, setIcon] = useState<string>(DEFAULT_ICON_SLUG);
+  const [iconQuery, setIconQuery] = useState("");
+  const [iconExpanded, setIconExpanded] = useState(false);
   const [defaultMinutes, setDefaultMinutes] = useState<number>(60);
   const [entries, setEntries] = useState<Entry[]>([]);
 
@@ -42,6 +49,7 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
     if (editing) {
       setName(editing.name);
       setColor(editing.color);
+      setIcon(editing.icon || DEFAULT_ICON_SLUG);
       setDefaultMinutes(editing.defaultStudyMinutes);
       const appelliEntries: Entry[] = editing.appelli.map((a) => ({
         uid: `app-${a.id}`,
@@ -61,6 +69,7 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
       setName("");
       const used = new Set(exams.map((e) => e.color));
       setColor(PALETTE.find((c) => !used.has(c)) ?? PALETTE[exams.length % PALETTE.length]);
+      setIcon(DEFAULT_ICON_SLUG);
       setDefaultMinutes(60);
       if (initialKind === "progetto") {
         setEntries([{ uid: newUid(), type: "range", start: "", end: "" }]);
@@ -68,6 +77,10 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
         setEntries([{ uid: newUid(), type: "appello", date: "" }]);
       }
     }
+    setIconQuery("");
+    // Expand picker se l'icona corrente non è tra le featured (così l'utente la vede subito).
+    const currentIcon = editing?.icon || DEFAULT_ICON_SLUG;
+    setIconExpanded(!FEATURED_ICON_SLUGS.has(currentIcon));
   }, [open, editing, initialKind, exams]);
 
   if (!open) return null;
@@ -125,6 +138,7 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
     const baseInput: EsameInputData = {
       name: trimmed,
       color,
+      icon,
       passed: editing?.passed ?? false,
       defaultStudyMinutes: defaultMinutes,
       appelli: cleanAppelli,
@@ -214,18 +228,116 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
       </div>
 
       <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
-        <label className="text-[11.5px] font-semibold text-app-muted">
-          Tempo di studio giornaliero
-        </label>
-        <select
-          value={defaultMinutes}
-          onChange={(e) => setDefaultMinutes(parseInt(e.target.value, 10))}
-          className="glass-input"
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-[11.5px] font-semibold text-app-muted">Icona</label>
+          {(iconExpanded || iconQuery.trim()) && (
+            <input
+              type="text"
+              value={iconQuery}
+              onChange={(e) => setIconQuery(e.target.value)}
+              placeholder="Cerca…"
+              className="glass-input !py-1 !px-2 !text-[11.5px] max-w-[140px]"
+            />
+          )}
+        </div>
+        <div
+          className={
+            "flex flex-wrap gap-1.5 " +
+            (iconExpanded || iconQuery.trim() ? "max-h-[180px] overflow-y-auto" : "")
+          }
         >
-          {durationOptions().map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          {(() => {
+            const q = iconQuery.trim().toLowerCase();
+            const showAll = iconExpanded || !!q;
+            const pool = showAll
+              ? EXAM_ICONS
+              : EXAM_ICONS.filter((e) => FEATURED_ICON_SLUGS.has(e.slug));
+            const filtered = q
+              ? pool.filter(
+                  (e) => e.label.toLowerCase().includes(q) || e.slug.includes(q),
+                )
+              : pool;
+            if (filtered.length === 0) {
+              return (
+                <span className="text-[11.5px] text-app-muted py-1">
+                  Nessuna icona trovata.
+                </span>
+              );
+            }
+            return filtered.map(({ slug, label, Icon }) => {
+              const selected = icon === slug;
+              return (
+                <button
+                  key={slug}
+                  type="button"
+                  onClick={() => setIcon(slug)}
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={selected}
+                  className={
+                    "w-[32px] h-[32px] rounded-lg cursor-pointer border-2 transition-transform hover:scale-110 flex items-center justify-center bg-app-soft " +
+                    (selected ? "border-app-fg" : "border-transparent")
+                  }
+                  style={selected ? { color, borderColor: color } : undefined}
+                >
+                  <Icon size={16} />
+                </button>
+              );
+            });
+          })()}
+          {!iconQuery.trim() && (
+            <button
+              type="button"
+              onClick={() => setIconExpanded((v) => !v)}
+              aria-label={iconExpanded ? "Mostra meno" : "Mostra altre"}
+              title={iconExpanded ? "Mostra meno" : "Mostra altre"}
+              aria-expanded={iconExpanded}
+              className="w-[32px] h-[32px] rounded-lg cursor-pointer border-2 border-transparent transition-transform hover:scale-110 flex items-center justify-center bg-app-soft text-app-muted hover:text-app-fg"
+            >
+              {iconExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
+        <div className="flex items-center justify-between gap-3">
+          <label className="text-[11.5px] font-semibold text-app-muted">
+            Tempo di studio giornaliero
+          </label>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() =>
+                setDefaultMinutes((m) => Math.max(0, m - STUDY_STEP_MIN))
+              }
+              disabled={defaultMinutes <= 0}
+              aria-label="Diminuisci"
+              className="w-7 h-7 rounded-md flex items-center justify-center bg-app-soft border border-app-border text-app-fg hover:bg-app-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Minus size={13} />
+            </button>
+            <span
+              className="min-w-[64px] text-center text-[12.5px] font-semibold tabular-nums select-none"
+              aria-live="polite"
+            >
+              {defaultMinutes === 0 ? "—" : formatHM(defaultMinutes)}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setDefaultMinutes((m) =>
+                  Math.min(STUDY_MAX_MIN, m + STUDY_STEP_MIN),
+                )
+              }
+              disabled={defaultMinutes >= STUDY_MAX_MIN}
+              aria-label="Aumenta"
+              className="w-7 h-7 rounded-md flex items-center justify-center bg-app-soft border border-app-border text-app-fg hover:bg-app-hover disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+        </div>
         <p className="text-[10.5px] text-app-muted leading-relaxed m-0">
           I minuti effettivi sono{" "}
           <code className="bg-app-soft rounded px-1 py-[1px] text-[10px]">t/n</code>, dove{" "}
