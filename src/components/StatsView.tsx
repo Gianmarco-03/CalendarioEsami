@@ -5,7 +5,7 @@ import { dailyTotals } from "../study-time";
 import { rangeDays } from "../study-time-format";
 import { ymd, parseYmd } from "../date";
 import { RangeSelector, resolveRange, type StatsRange } from "./stats/RangeSelector";
-import { ChartModeToggle, type ChartMode } from "./stats/ChartModeToggle";
+import type { ChartMode } from "./stats/ChartModeToggle";
 import { KpiCards } from "./stats/KpiCards";
 import { TodayQuickLog } from "./stats/TodayQuickLog";
 import { StudyChart, type DayPoint } from "./stats/StudyChart";
@@ -110,7 +110,6 @@ export function StatsView({ onDayClick }: Props) {
     <div className="flex-1 min-h-0 overflow-y-auto pr-2">
       <div className="stats-toolbar">
         <RangeSelector value={range} onChange={setRange} />
-        <ChartModeToggle value={mode} onChange={setMode} />
       </div>
 
       <KpiCards exams={exams} today={today} rangeStart={start} rangeEnd={end} />
@@ -121,6 +120,7 @@ export function StatsView({ onDayClick }: Props) {
         data={data}
         referenceData={referenceData}
         viewMode={mode}
+        onViewModeChange={setMode}
         todayIndex={todayIndex}
         title="Effettivo vs Consigliato"
         subtitle="tempo che hai loggato vs quello suggerito dalla formula"

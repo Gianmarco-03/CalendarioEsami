@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { NotebookPen, ChevronDown, ChevronRight } from "lucide-react";
+import { NotebookPen, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import type { Exam } from "../../types";
 import { useExams } from "../../state";
 import { useSuggestedStrategy } from "../../suggested-strategy";
 import { isStudying, actualMinutes } from "../../study-time";
+import { isProgetto } from "../../progetto";
 
 interface Props {
   exams: Exam[];
@@ -11,12 +12,20 @@ interface Props {
 }
 
 export function TodayQuickLog({ exams, today }: Props) {
-  const { setStudyDayMinutes } = useExams();
+  const { setStudyDayMinutes, toggleStudyDay } = useExams();
   const strategy = useSuggestedStrategy();
-  const studyingToday = exams.filter((e) => !e.passed && isStudying(e, today));
-  const [open, setOpen] = useState(studyingToday.length > 0);
+  const [open, setOpen] = useState(true);
 
-  if (studyingToday.length === 0) return null;
+  // Esami attivi mostrabili oggi:
+  // - Esami non-passed (always loggable: auto-toggle se non in studio).
+  // - Progetti con range coprente oggi (loggabili). Progetti fuori range esclusi.
+  const items = exams.filter((e) => {
+    if (e.passed) return false;
+    if (isProgetto(e)) {
+      return e.ranges.some((r) => today >= r.start && today <= r.end);
+    }
+    return true;
+  });
 
   return (
     <div className="quick-log">
@@ -31,39 +40,86 @@ export function TodayQuickLog({ exams, today }: Props) {
           <NotebookPen size={14} />
           Oggi · Quanto hai studiato?
         </div>
-        <div className="ql-sub">{studyingToday.length} attività</div>
+        <div className="ql-sub">{items.length === 0 ? "nessun esame attivo" : `${items.length} esame${items.length === 1 ? "" : "/i"}`}</div>
       </button>
       {open && (
-        <div className="ql-list">
-          {studyingToday.map((e) => {
-            const current = actualMinutes(e, today);
-            const suggested = strategy.compute(e, today, exams);
-            return (
-              <div key={e.id} className="ql-item">
-                <span className="ql-stripe" style={{ background: e.color }} />
-                <span className="ql-name">{e.name}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={1440}
-                  step={5}
-                  className="ql-input"
-                  defaultValue={current > 0 ? current : ""}
-                  placeholder={String(suggested)}
-                  onBlur={(ev) => {
-                    const raw = ev.target.value;
-                    const m = raw === "" ? null : Math.max(0, Math.min(1440, parseInt(raw, 10) || 0));
-                    void setStudyDayMinutes(e.id, today, m);
-                  }}
-                  aria-label={`Minuti studiati per ${e.name}`}
-                />
-                <span className="ql-min">m</span>
-                <span className="ql-suggested">consigliato {suggested}m</span>
-              </div>
-            );
-          })}
-        </div>
+        items.length === 0 ? (
+          <div className="ql-empty">
+            Nessun esame attivo. Crea un esame o progetto dalla barra laterale.
+          </div>
+        ) : (
+          <div className="ql-list">
+            {items.map((e) => (
+              <QuickLogRow
+                key={e.id}
+                exam={e}
+                today={today}
+                exams={exams}
+                studying={isStudying(e, today)}
+                strategy={strategy}
+                onToggle={() => void toggleStudyDay(e.id, today)}
+                onSetMinutes={(m) => void setStudyDayMinutes(e.id, today, m)}
+              />
+            ))}
+          </div>
+        )
       )}
+    </div>
+  );
+}
+
+interface RowProps {
+  exam: Exam;
+  today: string;
+  exams: Exam[];
+  studying: boolean;
+  strategy: { compute: (e: Exam, d: string, all: Exam[]) => number };
+  onToggle: () => void;
+  onSetMinutes: (m: number | null) => void;
+}
+
+function QuickLogRow({ exam, today, exams, studying, strategy, onToggle, onSetMinutes }: RowProps) {
+  const current = actualMinutes(exam, today);
+  const suggested = strategy.compute(exam, today, exams);
+  const isProj = isProgetto(exam);
+
+  const handleBlur = (ev: React.FocusEvent<HTMLInputElement>) => {
+    const raw = ev.target.value;
+    const m = raw === "" ? null : Math.max(0, Math.min(1440, parseInt(raw, 10) || 0));
+    // Per esami non-studying: prima toggle, poi set minuti.
+    // Per progetti in-range: l'upsert backend gestisce direttamente.
+    if (!studying && !isProj && m !== null) {
+      // Toggle implicito (fire-and-forget). Il refetch del state.tsx aggiornerà la UI.
+      onToggle();
+      // Aspetta un tick prima del set per evitare race con il refetch interno.
+      setTimeout(() => onSetMinutes(m), 50);
+    } else {
+      onSetMinutes(m);
+    }
+  };
+
+  return (
+    <div className="ql-item">
+      <span className="ql-stripe" style={{ background: exam.color }} />
+      <span className="ql-name">{exam.name}</span>
+      {!studying && !isProj && (
+        <span className="ql-hint" title="Verrà attivato lo studio per oggi quando inserisci i minuti">
+          <Plus size={11} /> nuovo
+        </span>
+      )}
+      <input
+        type="number"
+        min={0}
+        max={1440}
+        step={5}
+        className="ql-input"
+        defaultValue={current > 0 ? current : ""}
+        placeholder={String(suggested)}
+        onBlur={handleBlur}
+        aria-label={`Minuti studiati per ${exam.name}`}
+      />
+      <span className="ql-min">m</span>
+      <span className="ql-suggested">consigliato {suggested}m</span>
     </div>
   );
 }

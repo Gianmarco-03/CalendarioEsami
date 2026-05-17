@@ -1,7 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Activity, TrendingUp } from "lucide-react";
+import { ChartModeToggle, type ChartMode } from "./ChartModeToggle";
 
-export type ChartMode = "line" | "bars";
+export type { ChartMode };
 
 export interface DayPoint {
   date: string;
@@ -13,6 +14,7 @@ interface Props {
   data: DayPoint[];
   referenceData?: DayPoint[];
   viewMode: ChartMode;
+  onViewModeChange?: (m: ChartMode) => void;
   todayIndex?: number;
   title?: string;
   subtitle?: string;
@@ -81,7 +83,7 @@ function decimateLabels(data: DayPoint[]): string[] {
   return data.map((d, i) => (i % stride === 0 ? d.label : ""));
 }
 
-export function StudyChart({ data, referenceData, viewMode, todayIndex, title, subtitle, animationKey }: Props) {
+export function StudyChart({ data, referenceData, viewMode, onViewModeChange, todayIndex, title, subtitle, animationKey }: Props) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [chartVisible, setChartVisible] = useState(false);
   const lineRef = useRef<SVGPathElement | null>(null);
@@ -183,12 +185,15 @@ export function StudyChart({ data, referenceData, viewMode, todayIndex, title, s
 
   return (
     <div className="stats-chart">
-      {(title || subtitle) && (
+      {(title || subtitle || onViewModeChange) && (
         <div className="stats-chart__head">
           <div>
             {title && <div className="stats-chart__title">{title}</div>}
             {subtitle && <div className="stats-chart__subtitle">{subtitle}</div>}
           </div>
+          {onViewModeChange && (
+            <ChartModeToggle value={viewMode} onChange={onViewModeChange} />
+          )}
         </div>
       )}
 
