@@ -6,8 +6,8 @@ pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> 
     let base = input.base();
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     tx.execute(
-        "INSERT INTO exams (name, color, kind, passed, default_study_minutes) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![name, base.color, input.kind_str(), base.passed as i64, base.default_study_minutes],
+        "INSERT INTO exams (name, color, icon, kind, passed, default_study_minutes) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![name, base.color, base.icon, input.kind_str(), base.passed as i64, base.default_study_minutes],
     ).map_err(|e| format!("insert exam: {e}"))?;
     let id = tx.last_insert_rowid();
     for d in &base.appelli {
@@ -28,30 +28,30 @@ pub fn create(conn: &mut Connection, input: &ExamInput) -> Result<Exam, String> 
 
 pub fn list(conn: &Connection) -> Result<Vec<Exam>, String> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, color, kind, passed, default_study_minutes FROM exams ORDER BY name COLLATE NOCASE"
+        "SELECT id, name, color, icon, kind, passed, default_study_minutes FROM exams ORDER BY name COLLATE NOCASE"
     ).map_err(|e| format!("prepare: {e}"))?;
     let rows = stmt.query_map([], |r| {
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
-            r.get::<_, String>(3)?, r.get::<_, i64>(4)?, r.get::<_, i32>(5)?))
+            r.get::<_, String>(3)?, r.get::<_, String>(4)?, r.get::<_, i64>(5)?, r.get::<_, i32>(6)?))
     }).map_err(|e| format!("query: {e}"))?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, name, color, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
-        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)?);
+        let (id, name, color, icon, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, icon, &kind_str, passed != 0, dsm)?);
     }
     Ok(out)
 }
 
 pub fn get_by_id(conn: &Connection, id: i64) -> Result<Exam, String> {
-    let (name, color, kind_str, passed, dsm): (String, String, String, i64, i32) = conn.query_row(
-        "SELECT name, color, kind, passed, default_study_minutes FROM exams WHERE id = ?1",
+    let (name, color, icon, kind_str, passed, dsm): (String, String, String, String, i64, i32) = conn.query_row(
+        "SELECT name, color, icon, kind, passed, default_study_minutes FROM exams WHERE id = ?1",
         params![id],
-        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
     ).map_err(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => format!("Esame {id} non trovato"),
         e => format!("select exam: {e}"),
     })?;
-    build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)
+    build_exam(conn, id, name, color, icon, &kind_str, passed != 0, dsm)
 }
 
 fn build_exam(
@@ -59,6 +59,7 @@ fn build_exam(
     id: i64,
     name: String,
     color: String,
+    icon: String,
     kind_str: &str,
     passed: bool,
     default_study_minutes: i32,
@@ -66,7 +67,7 @@ fn build_exam(
     let appelli = load_appelli(conn, id)?;
     let study_days = load_study_days(conn, id)?;
     let base = EsameData {
-        id, name, color, passed, default_study_minutes, appelli, study_days,
+        id, name, color, icon, passed, default_study_minutes, appelli, study_days,
     };
     match kind_str {
         "esame" => Ok(Exam::Esame(base)),
@@ -114,13 +115,37 @@ pub fn set_study_day_minutes(conn: &Connection, exam_id: i64, date: &str, minute
             return Err(format!("Minuti non validi: {m} (0..1440)"));
         }
     }
+    // 1) Try UPDATE — fast path per esami (riga creata da toggle) e progetti già loggati.
     let changed = conn.execute(
         "UPDATE study_days SET minutes = ?1 WHERE exam_id = ?2 AND date = ?3",
         params![minutes, exam_id, date],
     ).map_err(|e| format!("update minutes: {e}"))?;
-    if changed == 0 {
+    if changed > 0 { return Ok(()); }
+
+    // 2) Nessuna riga — INSERT consentito solo per progetti con range coprente il giorno.
+    let kind: String = conn.query_row(
+        "SELECT kind FROM exams WHERE id = ?1",
+        params![exam_id],
+        |r| r.get(0),
+    ).map_err(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => format!("Esame {exam_id} non esistente"),
+        e => format!("select kind: {e}"),
+    })?;
+    if kind != "progetto" {
         return Err(format!("Giorno di studio {date} non trovato per esame {exam_id}"));
     }
+    let covered: bool = conn.query_row(
+        "SELECT 1 FROM project_ranges WHERE exam_id = ?1 AND ?2 BETWEEN start_date AND end_date LIMIT 1",
+        params![exam_id, date],
+        |_| Ok(true),
+    ).unwrap_or(false);
+    if !covered {
+        return Err(format!("Progetto {exam_id} non copre il giorno {date}"));
+    }
+    conn.execute(
+        "INSERT INTO study_days (exam_id, date, minutes) VALUES (?1, ?2, ?3)",
+        params![exam_id, date, minutes],
+    ).map_err(|e| format!("insert minutes: {e}"))?;
     Ok(())
 }
 
@@ -129,9 +154,9 @@ pub fn update(conn: &mut Connection, id: i64, input: &ExamInput) -> Result<Exam,
     let base = input.base();
     let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
     let changed = tx.execute(
-        "UPDATE exams SET name = ?1, color = ?2, kind = ?3, passed = ?4,
-                          default_study_minutes = ?5, updated_at = datetime('now') WHERE id = ?6",
-        params![name, base.color, input.kind_str(), base.passed as i64, base.default_study_minutes, id],
+        "UPDATE exams SET name = ?1, color = ?2, icon = ?3, kind = ?4, passed = ?5,
+                          default_study_minutes = ?6, updated_at = datetime('now') WHERE id = ?7",
+        params![name, base.color, base.icon, input.kind_str(), base.passed as i64, base.default_study_minutes, id],
     ).map_err(|e| format!("update exam: {e}"))?;
     if changed == 0 {
         return Err(format!("Esame {id} non trovato"));
@@ -234,19 +259,19 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Exam>, String> {
         return list(conn);
     }
     let mut stmt = conn.prepare(
-        "SELECT id, name, color, kind, passed, default_study_minutes FROM exams
+        "SELECT id, name, color, icon, kind, passed, default_study_minutes FROM exams
          WHERE name LIKE ?1 COLLATE NOCASE
          ORDER BY name COLLATE NOCASE"
     ).map_err(|e| format!("prepare search: {e}"))?;
     let pattern = format!("%{q}%");
     let rows = stmt.query_map(params![pattern], |r| {
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?,
-            r.get::<_, String>(3)?, r.get::<_, i64>(4)?, r.get::<_, i32>(5)?))
+            r.get::<_, String>(3)?, r.get::<_, String>(4)?, r.get::<_, i64>(5)?, r.get::<_, i32>(6)?))
     }).map_err(|e| format!("query: {e}"))?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, name, color, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
-        out.push(build_exam(conn, id, name, color, &kind_str, passed != 0, dsm)?);
+        let (id, name, color, icon, kind_str, passed, dsm) = row.map_err(|e| format!("row: {e}"))?;
+        out.push(build_exam(conn, id, name, color, icon, &kind_str, passed != 0, dsm)?);
     }
     Ok(out)
 }
@@ -260,6 +285,7 @@ mod tests {
         ExamInput::Esame(EsameInputData {
             name: "Neuroanatomia".into(),
             color: "#E8543F".into(),
+            icon: "book-open".into(),
             passed: false,
             default_study_minutes: 60,
             appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
@@ -271,6 +297,7 @@ mod tests {
             esame: EsameInputData {
                 name: "Tesina Fisiologia".into(),
                 color: "#27AE60".into(),
+                icon: "book-open".into(),
                 passed: false,
                 default_study_minutes: 60,
                 appelli: vec![],
@@ -283,6 +310,7 @@ mod tests {
         let mut data = EsameInputData {
             name: "Neuroanatomia".into(),
             color: "#E8543F".into(),
+            icon: "book-open".into(),
             passed: false,
             default_study_minutes: 60,
             appelli: vec!["2026-06-15".into(), "2026-07-10".into()],
@@ -332,6 +360,7 @@ mod tests {
         let bad = ExamInput::Esame(EsameInputData {
             name: "".into(),
             color: "#000000".into(),
+            icon: "book-open".into(),
             passed: false,
             default_study_minutes: 60,
             appelli: vec![],
@@ -435,6 +464,41 @@ mod tests {
     }
 
     #[test]
+    fn set_study_day_minutes_upserts_for_progetto_in_range() {
+        let mut conn = open_in_memory().unwrap();
+        // sample_progetto ha range 2026-05-01..2026-05-15
+        let p = create(&mut conn, &sample_progetto()).unwrap();
+        // Set su giorno coperto → INSERT
+        set_study_day_minutes(&conn, p.id(), "2026-05-10", Some(45)).unwrap();
+        let reread = get_by_id(&conn, p.id()).unwrap();
+        let sd = reread.base().study_days.iter().find(|s| s.date == "2026-05-10").unwrap();
+        assert_eq!(sd.minutes, Some(45));
+        // Set nuovo valore stesso giorno → UPDATE
+        set_study_day_minutes(&conn, p.id(), "2026-05-10", Some(120)).unwrap();
+        let reread = get_by_id(&conn, p.id()).unwrap();
+        let sd = reread.base().study_days.iter().find(|s| s.date == "2026-05-10").unwrap();
+        assert_eq!(sd.minutes, Some(120));
+    }
+
+    #[test]
+    fn set_study_day_minutes_rejects_progetto_out_of_range() {
+        let mut conn = open_in_memory().unwrap();
+        let p = create(&mut conn, &sample_progetto()).unwrap();
+        // 2026-07-15 è fuori dal range 2026-05-01..2026-05-15
+        let err = set_study_day_minutes(&conn, p.id(), "2026-07-15", Some(45)).unwrap_err();
+        assert!(err.contains("non copre"), "got: {err}");
+    }
+
+    #[test]
+    fn set_study_day_minutes_rejects_esame_without_toggle() {
+        let mut conn = open_in_memory().unwrap();
+        let e = create(&mut conn, &sample_esame()).unwrap();
+        // Nessun toggle_study_day → la riga non esiste, l'esame non è progetto → errore.
+        let err = set_study_day_minutes(&conn, e.id(), "2026-06-15", Some(45)).unwrap_err();
+        assert!(err.contains("non trovato"), "got: {err}");
+    }
+
+    #[test]
     fn search_filters_by_name() {
         let mut conn = open_in_memory().unwrap();
         create(&mut conn, &sample_esame()).unwrap();
@@ -475,6 +539,7 @@ mod tests {
             esame: EsameInputData {
                 name: "Tesi v2".into(),
                 color: proj.base().color.clone(),
+                icon: "book-open".into(),
                 passed: false,
                 default_study_minutes: 60,
                 appelli: vec![],
