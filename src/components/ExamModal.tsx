@@ -3,7 +3,8 @@ import type { Exam, ExamKind, ExamInput, EsameInputData, ProgettoInputData } fro
 import { useExams } from "../state";
 import { useToast } from "../toast";
 import { Modal } from "./Modal";
-import { X as XIcon, Plus } from "lucide-react";
+import { ModalButton } from "./ModalButton";
+import { X as XIcon, Plus, Pencil } from "lucide-react";
 import { durationOptions } from "../study-time";
 import { isProgetto } from "../progetto";
 
@@ -156,10 +157,29 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
     }
   };
 
+  const footer = (
+    <>
+      {editing && (
+        <ModalButton variant="danger" onClick={handleDelete}>Elimina</ModalButton>
+      )}
+      <div className="flex-1" />
+      <ModalButton variant="secondary" onClick={onClose}>Annulla</ModalButton>
+      <ModalButton variant="primary" onClick={handleSave}>Salva</ModalButton>
+    </>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} title={title}>
-      <div className="mb-3">
-        <label className="block text-[11px] font-bold text-[#6b7280] uppercase tracking-wide mb-1.5">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      icon={editing ? Pencil : Plus}
+      accent={color}
+      size="lg"
+      footer={footer}
+    >
+      <div className="flex flex-col gap-2">
+        <label className="text-[11.5px] font-semibold text-app-muted">
           {isProj ? "Nome progetto" : "Nome esame"}
         </label>
         <input
@@ -168,21 +188,23 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
           onChange={(e) => setName(e.target.value)}
           placeholder={isProj ? "es. Tesina di Fisiologia" : "es. Neuroanatomia"}
           autoFocus
-          className="w-full px-2.5 py-2 border border-[#d6d9e0] rounded-lg text-[13px] focus:outline-2 focus:outline-[#aeb4c0]"
+          className="glass-input"
         />
       </div>
 
-      <div className="mb-3">
-        <label className="block text-[11px] font-bold text-[#6b7280] uppercase tracking-wide mb-1.5">Colore</label>
-        <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
+        <label className="text-[11.5px] font-semibold text-app-muted">Colore</label>
+        <div className="flex flex-wrap gap-2">
           {PALETTE.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setColor(c)}
               className={
-                "w-[26px] h-[26px] rounded-lg cursor-pointer border-2 " +
-                (color === c ? "border-[#1f2430] shadow-[inset_0_0_0_2px_white]" : "border-transparent")
+                "w-[30px] h-[30px] rounded-lg cursor-pointer border-2 transition-transform hover:scale-110 " +
+                (color === c
+                  ? "border-app-fg shadow-[inset_0_0_0_2px_var(--color-app-card)]"
+                  : "border-transparent")
               }
               style={{ background: c }}
               aria-label={c}
@@ -191,93 +213,85 @@ export function ExamModal({ open, onClose, editing, initialKind }: ExamModalProp
         </div>
       </div>
 
-      <div className="mb-3">
-        <label className="block text-[11px] font-bold text-app-muted uppercase tracking-wide mb-1.5">
+      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
+        <label className="text-[11.5px] font-semibold text-app-muted">
           Tempo di studio giornaliero
         </label>
         <select
           value={defaultMinutes}
           onChange={(e) => setDefaultMinutes(parseInt(e.target.value, 10))}
-          className="w-full px-2.5 py-2 border border-app-input-border rounded-lg text-[13px] bg-app-input-bg text-app-fg focus:outline-2 focus:outline-app-muted"
+          className="glass-input"
         >
           {durationOptions().map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-        <p className="mt-1 text-[10.5px] text-app-muted leading-relaxed">
-          I minuti effettivi sono <code>t/n</code>, dove <code>n</code> è il numero di esami
+        <p className="text-[10.5px] text-app-muted leading-relaxed m-0">
+          I minuti effettivi sono{" "}
+          <code className="bg-app-soft rounded px-1 py-[1px] text-[10px]">t/n</code>, dove{" "}
+          <code className="bg-app-soft rounded px-1 py-[1px] text-[10px]">n</code> è il numero di esami
           attivi (esami in studio + progetti in corso) quel giorno.
         </p>
       </div>
 
-      <div className="mb-3">
-        <label className="block text-[11px] font-bold text-[#6b7280] uppercase tracking-wide mb-1.5">
+      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
+        <label className="text-[11.5px] font-semibold text-app-muted">
           Date d'esame / Periodi
         </label>
-        {entries.map((entry) => (
-          <div key={entry.uid} className="flex items-center gap-2 mb-2">
-            <label className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-app-muted shrink-0">
-              <input
-                type="checkbox"
-                checked={entry.type === "range"}
-                onChange={() => toggleEntryType(entry.uid)}
-                className="w-3.5 h-3.5"
-              />
-              Periodo
-            </label>
-            {entry.type === "appello" ? (
-              <input
-                type="date"
-                value={entry.date}
-                onChange={(ev) => updateEntry(entry.uid, { date: ev.target.value })}
-                className="flex-1 px-2 py-1.5 text-[12.5px] border border-app-input-border bg-app-input-bg text-app-fg rounded-lg"
-              />
-            ) : (
-              <>
+        <div className="flex flex-col gap-2">
+          {entries.map((entry) => (
+            <div
+              key={entry.uid}
+              className="flex items-center gap-2 px-2.5 py-2 bg-app-soft border border-app-border rounded-lg"
+            >
+              <label className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-app-muted shrink-0">
+                <input
+                  type="checkbox"
+                  checked={entry.type === "range"}
+                  onChange={() => toggleEntryType(entry.uid)}
+                  className="w-3.5 h-3.5"
+                />
+                Periodo
+              </label>
+              {entry.type === "appello" ? (
                 <input
                   type="date"
-                  value={entry.start}
-                  onChange={(ev) => updateEntry(entry.uid, { start: ev.target.value })}
-                  className="flex-1 min-w-0 px-2 py-1.5 text-[12.5px] border border-app-input-border bg-app-input-bg text-app-fg rounded-lg"
+                  value={entry.date}
+                  onChange={(ev) => updateEntry(entry.uid, { date: ev.target.value })}
+                  className="flex-1 glass-input !py-1.5 !px-2 !text-[12.5px]"
                 />
-                <span className="text-[10px] text-app-muted shrink-0">→</span>
-                <input
-                  type="date"
-                  value={entry.end}
-                  onChange={(ev) => updateEntry(entry.uid, { end: ev.target.value })}
-                  className="flex-1 min-w-0 px-2 py-1.5 text-[12.5px] border border-app-input-border bg-app-input-bg text-app-fg rounded-lg"
-                />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => removeEntry(entry.uid)}
-              className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
-              title="Rimuovi"
-              aria-label="Rimuovi"
-            ><XIcon size={14} /></button>
-          </div>
-        ))}
+              ) : (
+                <>
+                  <input
+                    type="date"
+                    value={entry.start}
+                    onChange={(ev) => updateEntry(entry.uid, { start: ev.target.value })}
+                    className="flex-1 min-w-0 glass-input !py-1.5 !px-2 !text-[12.5px]"
+                  />
+                  <span className="text-[10px] text-app-muted shrink-0">→</span>
+                  <input
+                    type="date"
+                    value={entry.end}
+                    onChange={(ev) => updateEntry(entry.uid, { end: ev.target.value })}
+                    className="flex-1 min-w-0 glass-input !py-1.5 !px-2 !text-[12.5px]"
+                  />
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => removeEntry(entry.uid)}
+                className="p-1 rounded text-app-muted hover:bg-app-hover hover:text-app-fg"
+                title="Rimuovi"
+                aria-label="Rimuovi"
+              ><XIcon size={14} /></button>
+            </div>
+          ))}
+        </div>
         <button
           type="button"
           onClick={addAppello}
-          className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#2f6fb3] hover:underline"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-app-accent hover:underline bg-transparent border-none p-0 self-start mt-1"
         ><Plus size={12} /> Aggiungi data</button>
-      </div>
-
-      <div className="flex gap-2 mt-2">
-        {editing && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-[#e7c3bd] text-[#c0392b] hover:bg-[#fdf1ef]"
-          >Elimina</button>
-        )}
-        <button
-          type="button"
-          onClick={handleSave}
-          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[#2f3545] text-white border border-[#2f3545] hover:bg-[#1f2430]"
-        >Salva</button>
       </div>
     </Modal>
   );
