@@ -1,7 +1,8 @@
 import { useExams } from "../state";
 import { inRange, parseYmd } from "../date";
 import { Modal } from "./Modal";
-import { Clock } from "lucide-react";
+import { ModalButton } from "./ModalButton";
+import { Clock, Calendar } from "lucide-react";
 import { effectiveMinutes, countPresences } from "../study-time";
 import { isProgetto } from "../progetto";
 
@@ -36,13 +37,27 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
 
   const studyTargets = active;
 
+  const footer = (
+    <>
+      <div className="flex-1" />
+      <ModalButton variant="primary" onClick={onClose}>Chiudi</ModalButton>
+    </>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} title={title}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      icon={Calendar}
+      size="md"
+      footer={footer}
+    >
       {infoLines.length > 0 && (
-        <div className="bg-app-soft border border-app-border rounded-lg px-2.5 py-2 mb-3">
+        <div className="bg-app-soft border border-app-border rounded-[10px] px-3 py-2.5 flex flex-col gap-1.5">
           {infoLines.map((ln, i) => (
-            <div key={i} className="text-[12px] font-semibold text-app-fg flex items-center gap-1.5 mt-1 first:mt-0">
-              <span className="w-[10px] h-[10px] rounded-full" style={{ background: ln.color }} />
+            <div key={i} className="text-[12px] font-semibold text-app-fg flex items-center gap-2">
+              <span className="w-[10px] h-[10px] rounded-full shrink-0" style={{ background: ln.color }} />
               {ln.text}
             </div>
           ))}
@@ -56,8 +71,8 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
             : "Nessun esame attivo. Aggiungine uno dalla barra laterale."}
         </div>
       ) : (
-        <>
-          <div className="text-[11px] font-bold text-app-muted uppercase tracking-wide mb-2">
+        <div className="flex flex-col gap-2">
+          <div className="text-[11.5px] font-semibold text-app-muted">
             Sto studiando per…
           </div>
           {studyTargets.map((e) => {
@@ -70,9 +85,12 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
             return (
               <div
                 key={e.id}
-                className="flex items-center gap-2 px-2.5 py-2 border border-app-border rounded-lg mb-1.5 hover:bg-app-hover"
+                className="relative flex items-center gap-2 pl-4 pr-3 py-2 border border-app-border rounded-lg bg-app-soft overflow-hidden"
               >
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ background: e.color }} />
+                <span
+                  className="absolute left-0 top-0 bottom-0 w-[3px]"
+                  style={{ background: e.color }}
+                />
                 <span className="flex-1 text-[13px] font-semibold text-app-fg truncate">{e.name}</span>
 
                 {studying && (
@@ -90,7 +108,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
                         const m = raw === "" ? null : Math.max(0, Math.min(1440, parseInt(raw, 10) || 0));
                         void setStudyDayMinutes(e.id, dayKey, m);
                       }}
-                      className="w-14 px-1.5 py-1 text-[12px] text-app-fg bg-app-input-bg border border-app-input-border rounded"
+                      className="w-14 glass-input !py-1 !px-1.5 !text-[12px]"
                       aria-label={`Minuti di studio per ${e.name}`}
                       title={
                         isOverride
@@ -114,7 +132,7 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
               </div>
             );
           })}
-        </>
+        </div>
       )}
     </Modal>
   );
