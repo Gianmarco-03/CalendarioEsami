@@ -108,6 +108,15 @@
     transition: background-color 0.25s, border-color 0.25s;
   }
 
+  .modal-panel-anim {
+    animation: fade-in 180ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .modal-panel-anim {
+      animation: none;
+    }
+  }
+
   .glass-input {
     background: var(--color-app-input-bg);
     border: 1px solid var(--color-app-input-border);

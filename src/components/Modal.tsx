@@ -50,10 +50,9 @@ export function Modal({
       <div
         className={
           "text-app-fg rounded-2xl w-full max-h-[88vh] overflow-hidden " +
-          "shadow-2xl glass-panel flex flex-col " +
+          "shadow-2xl glass-panel modal-panel-anim flex flex-col " +
           SIZE_CLASSES[size]
         }
-        style={{ animation: "fade-in 180ms ease-out" }}
       >
         {/* Accent bar */}
         <div
