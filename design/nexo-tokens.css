@@ -1,0 +1,386 @@
+/* ===========================================================================
+   NEXO NOTE — DESIGN TOKENS
+   Evolved "minimal-black" system. This is THE voice of the product: one
+   theme, one accent, one grammar. Import this file into any prototype
+   to get Nexo Note's look for free.
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  /* --- TYPEFACES --------------------------------------------------------- */
+  /* Syne — display only. Reserved for large titles and the brand mark.
+     Weights used: 700 (tight leading), 800 (hero). Always pair with
+     negative letter-spacing: -0.04em at 2rem+, -0.08em at hero scale. */
+  --font-display: 'Syne', 'Inter', ui-sans-serif, sans-serif;
+
+  /* JetBrains Mono — everything else. UI labels, body copy, metadata,
+     numerals. The mono is the product's POV: precise, technical, studious.
+     Fall back to any mono if Syne/JB Mono aren't loaded. */
+  --font-base: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Instrument Serif — used sparingly for editorial emphasis (quotes,
+     in-editor drop caps, italic accents inside serif body blocks). */
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+
+
+  /* --- COLOR — CORE NEUTRALS --------------------------------------------- */
+  /* The spine of the system. Black is never #000 flat in atmosphere —
+     the gradient flow and grain overlay give it life — but it IS #000
+     at the token layer. */
+  --ink-0:     #000000;   /* bg base */
+  --ink-05:    #050505;   /* panel (almost-black) */
+  --ink-10:    #0a0a0a;   /* raised surface */
+  --ink-15:    #111111;   /* popovers */
+  --ink-20:    #1a1a1a;   /* pressed state */
+  --ink-30:    #222222;   /* accent-2 / dividers on dark */
+  --ink-40:    #2a2a2a;   /* hairline borders used as fills */
+  --ink-50:    #444444;   /* accent / icon fill */
+  --ink-60:    #666666;   /* disabled label */
+  --ink-70:    #888888;   /* muted body */
+  --ink-80:    #bdbdbd;   /* secondary text */
+  --ink-90:    #dedede;   /* tertiary emphasis */
+  --ink-100:   #fafafa;   /* primary text (NOT pure white) */
+  --ink-pure:  #ffffff;   /* reserved: brand mark, focus ring */
+
+  /* --- COLOR — SEMANTIC ROLES -------------------------------------------- */
+  --bg:            var(--ink-0);
+  --panel:         rgba(5, 5, 5, 0.96);   /* solid-ish, w/ backdrop blur */
+  --panel-raised:  rgba(10, 10, 10, 0.98);
+  --panel-overlay: rgba(17, 17, 17, 0.92);
+
+  --text:          var(--ink-100);
+  --text-secondary:var(--ink-80);
+  --muted:         var(--ink-70);
+  --disabled:      var(--ink-60);
+
+  --accent:        var(--ink-50);         /* dividers, icon strokes */
+  --accent-2:      var(--ink-30);
+  --border:        rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --hover:         rgba(255, 255, 255, 0.04);
+  --pressed:       rgba(255, 255, 255, 0.08);
+
+  /* --- COLOR — THE ONE ACCENT -------------------------------------------- */
+  /* The brand accent is WHITE. Used for: focus rings, primary CTAs (as
+     inverted text on black), the brand mark, key interactive states.
+     Do NOT introduce blues/purples/oranges. */
+  --brand:         var(--ink-pure);
+  --brand-rgb:     255, 255, 255;
+  --brand-soft:    rgba(255, 255, 255, 0.08);  /* hover wash */
+  --brand-edge:    rgba(255, 255, 255, 0.18);  /* border accent */
+
+  /* --- COLOR — SEMANTIC STATE -------------------------------------------- */
+  /* Mauve/warm-grey for danger. Intentionally desaturated — no fire-engine
+     red. This preserves the palette's coolness. Success and warn stay
+     near-neutral; they signal via iconography and copy, not color. */
+  --danger:        #a88890;
+  --danger-soft:   rgba(168, 136, 144, 0.12);
+  --danger-edge:   rgba(168, 136, 144, 0.42);
+
+  --success:       #c8c8c0;   /* warm-neutral, almost bone */
+  --success-soft:  rgba(200, 200, 192, 0.08);
+
+  --warn:          #d4c49a;   /* pale wheat, very quiet */
+  --warn-soft:     rgba(212, 196, 154, 0.1);
+
+
+
+
+  /* --- SPACING SCALE (4pt base) ------------------------------------------ */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+
+  /* --- RADIUS SCALE ------------------------------------------------------ */
+  /* Four steps. If you reach for a number not on this scale, reconsider. */
+  --radius-sm:   6px;    /* chips, inline tags, tight controls */
+  --radius-md:   10px;   /* buttons, inputs, small cards */
+  --radius-lg:   14px;   /* cards, panels, tree items */
+  --radius-xl:   20px;   /* hero cards, modals */
+  --radius-pill: 999px;  /* pills, landing CTAs, metadata chips */
+
+
+  /* --- TYPE SCALE -------------------------------------------------------- */
+  /* Eight sizes. Every piece of text in the product picks from this list. */
+  --text-2xs:  11px;    /* overline, uppercase metadata */
+  --text-xs:   12px;    /* secondary metadata, fine print */
+  --text-sm:   13px;    /* captions, labels */
+  --text-base: 14px;    /* body — the workhorse size for UI */
+  --text-md:   16px;    /* long-form body */
+  --text-lg:   20px;    /* sub-headings */
+  --text-xl:   28px;    /* page titles */
+  --text-2xl:  44px;    /* section openers */
+  --text-hero: clamp(3.2rem, 9vw, 6.4rem);  /* landing / marquee only */
+
+  --lh-tight:  1.1;
+  --lh-snug:   1.35;
+  --lh-body:   1.55;
+  --lh-relaxed:1.75;
+
+  --tracking-hero:  -0.08em;   /* landing title, Syne 6rem+ */
+  --tracking-xl:    -0.04em;   /* Syne display, section heads */
+  --tracking-lg:    -0.025em;  /* page titles */
+  --tracking-md:     0;
+  --tracking-sm:     0.02em;
+  --tracking-wide:   0.08em;   /* uppercase labels */
+  --tracking-wider:  0.18em;   /* kickers */
+
+
+  /* --- SHADOWS ----------------------------------------------------------- */
+  /* On black, shadows are mostly decorative contour work — not atmospheric
+     depth. Keep them sparse. For the classic "glass" hairline use the
+     inset variants; they're what gives panels their precision edge. */
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md:     0 8px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg:     0 12px 30px rgba(0, 0, 0, 0.7);
+  --shadow-xl:     0 24px 60px rgba(0, 0, 0, 0.8);
+
+  /* The "glass edge": 1px inset highlight that makes near-black panels
+     legible against the near-black background. */
+  --edge-inset:        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --edge-inset-strong: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  --shadow-panel: var(--shadow-lg), var(--edge-inset);
+  --shadow-popover: var(--shadow-xl), var(--edge-inset-strong);
+
+
+  /* --- MOTION ------------------------------------------------------------ */
+  /* Three durations. Three curves. No bespoke timing functions per
+     component. If a component feels wrong on these, the component is
+     wrong, not the motion system. */
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-slow: 380ms;
+
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);   /* default — out-expo-ish */
+  --ease-soft:     cubic-bezier(0.18, 0.9, 0.32, 1); /* entries, surface enter */
+  --ease-snappy:   cubic-bezier(0.2, 0.9, 0.2, 1.12);/* tap/click feedback */
+
+
+  /* --- LAYOUT ------------------------------------------------------------ */
+  --sidebar-width: 260px;
+  --topbar-height: 56px;
+  --content-max:   1280px;
+  --focus-ring:    0 0 0 2px var(--ink-0), 0 0 0 4px var(--brand);
+
+  /* USER-ASSIGNED ENTITY PALETTES
+     Nexo Note is color-coded by the user. Every folder, document, plan,
+     agenda event, and tag carries a user-picked color rendered as a small
+     signature (dot, rail, progress fill). Chrome stays monochrome. */
+  --folder-1: #5a7cff;
+  --folder-2: #2fbf8f;
+  --folder-3: #f59f00;
+  --folder-4: #d9480f;
+  --folder-5: #e64980;
+  --folder-6: #7b61ff;
+  --folder-7: #2f9e44;
+  --folder-8: #0991b2;
+  --folder-9: #495057;
+  --folder-10: #111827;
+
+  --plan-1: #5a7cff;
+  --plan-2: #22c55e;
+  --plan-3: #f59e0b;
+  --plan-4: #ef4444;
+  --plan-5: #8b5cf6;
+  --plan-6: #ec4899;
+  --plan-7: #14b8a6;
+  --plan-8: #f97316;
+
+  --tag-1: #c084fc;
+  --tag-2: #60a5fa;
+  --tag-3: #34d399;
+  --tag-4: #f59e0b;
+  --tag-5: #f87171;
+  --tag-6: #a78bfa;
+  --tag-7: #38bdf8;
+  --tag-8: #4ade80;
+  --tag-9: #fb923c;
+  --tag-10: #e879f9;
+  --tag-11: #2dd4bf;
+  --tag-12: #facc15;
+
+  /* Agenda event types */
+  --agenda-1: #5a7cff;  /* lezione      */
+  --agenda-2: #ef4444;  /* esame        */
+  --agenda-3: #f59e0b;  /* deadline     */
+  --agenda-4: #22c55e;  /* studio       */
+  --agenda-5: #8b5cf6;  /* ricevimento  */
+  --agenda-6: #14b8a6;  /* personale    */
+}
+
+
+/* ===========================================================================
+   SEMANTIC TYPOGRAPHY
+   Direct-apply classes. The rule: you either use one of these, or you've
+   hit a case the system hasn't anticipated — open an issue.
+   ========================================================================= */
+
+html, body {
+  font-family: var(--font-base);
+  font-size: var(--text-base);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display / hero — Syne, huge, tight */
+.t-hero {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-hero);
+  line-height: 0.92;
+  letter-spacing: var(--tracking-hero);
+  color: var(--ink-pure);
+}
+
+/* Page title — Syne, confident but not cinematic */
+.t-h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-2xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-xl);
+  color: var(--text);
+}
+
+/* Section opener */
+.t-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-lg);
+  color: var(--text);
+}
+
+/* Sub-heading — back to mono, small caps vibe via uppercase + tracking */
+.t-h3 {
+  font-family: var(--font-base);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-sm);
+  color: var(--text);
+}
+
+/* Body long-form */
+.t-body {
+  font-family: var(--font-base);
+  font-weight: 400;
+  font-size: var(--text-md);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+/* UI body — most of the product */
+.t-ui {
+  font-family: var(--font-base);
+  font-weight: 500;
+  font-size: var(--text-base);
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+/* Caption / metadata */
+.t-caption {
+  font-family: var(--font-base);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  line-height: var(--lh-snug);
+  color: var(--muted);
+}
+
+/* Kicker / overline — tiny, uppercase, wide tracking. THE signature label
+   treatment. Use for section intros ("LATELY", "UPCOMING", "PINNED"). */
+.t-kicker {
+  font-family: var(--font-base);
+  font-weight: 700;
+  font-size: var(--text-2xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Editorial serif — for pull-quotes, drop caps, inline emphasis */
+.t-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text);
+}
+
+/* Inline code / data */
+.t-code {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.92em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--ink-15);
+  color: var(--ink-90);
+}
+
+/* Numeric display — tabular, for dashboard figures */
+.t-num {
+  font-family: var(--font-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+
+/* ===========================================================================
+   AMBIENT TEXTURE
+   The grain overlay. Apply to body once; it's what stops black from
+   looking like a dead slab. 2.5% opacity is the ceiling — any more and
+   it reads as noise, not tooth.
+   ========================================================================= */
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  background-repeat: repeat;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--ink-pure);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Scrollbar — slim, dark, gets out of the way */
+* { scrollbar-width: thin; scrollbar-color: rgba(80, 80, 80, 0.7) rgba(10, 10, 10, 0.6); }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: rgba(10, 10, 10, 0.6); border-radius: var(--radius-pill); }
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(60, 60, 60, 0.7), rgba(40, 40, 40, 0.6));
+  border-radius: var(--radius-pill);
+}
