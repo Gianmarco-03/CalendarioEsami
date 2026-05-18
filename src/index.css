@@ -4,26 +4,26 @@
 
 @theme {
   /* Base / surfaces */
-  --color-app-bg: #eef3fb;
+  --color-app-bg: #f6f6f7;
   --color-app-card: rgba(255, 255, 255, 0.72);
   --color-app-cell: rgba(255, 255, 255, 0.60);
-  --color-app-cell-border: rgba(70, 130, 240, 0.10);
-  --color-app-soft: rgba(70, 130, 240, 0.10);
-  --color-app-hover: rgba(70, 130, 240, 0.08);
+  --color-app-cell-border: rgba(0, 0, 0, 0.08);
+  --color-app-soft: rgba(0, 0, 0, 0.05);
+  --color-app-hover: rgba(0, 0, 0, 0.06);
 
   /* Borders */
-  --color-app-border: rgba(70, 130, 240, 0.18);
+  --color-app-border: rgba(0, 0, 0, 0.12);
   --color-app-input-bg: #ffffff;
-  --color-app-input-border: rgba(70, 130, 240, 0.18);
+  --color-app-input-border: rgba(0, 0, 0, 0.14);
 
   /* Text */
-  --color-app-fg: #1a2540;
-  --color-app-muted: #5a6585;
+  --color-app-fg: #18181b;
+  --color-app-muted: #71717a;
 
   /* Accent */
-  --color-app-accent: #1a2540;
+  --color-app-accent: #18181b;
   --color-app-accent-fg: #ffffff;
-  --color-app-accent-hover: #0e1730;
+  --color-app-accent-hover: #000000;
 
   /* Danger (delete actions) */
   --color-app-danger: #c0392b;
@@ -31,19 +31,19 @@
   --color-app-danger-fg: #c0392b;
 
   /* Focus ring (input + buttons) */
-  --color-app-focus-ring: rgba(70, 130, 240, 0.35);
+  --color-app-focus-ring: rgba(0, 0, 0, 0.25);
 
-  /* Ambient layer (Aurora) */
-  --aurora-1: rgba(70, 130, 240, 0.20);
-  --aurora-2: rgba(120, 180, 255, 0.15);
-  --aurora-3: rgba(255, 180, 200, 0.13);
+  /* Ambient layer (Aurora) — neutral, very subtle */
+  --aurora-1: rgba(255, 255, 255, 0.55);
+  --aurora-2: rgba(200, 200, 205, 0.30);
+  --aurora-3: rgba(180, 180, 185, 0.22);
 
   /* Blur intensities */
   --blur-strong: 16px;
   --blur-medium: 12px;
 
   /* Cell band separator (theme-aware) */
-  --cell-band-sep: rgba(70, 130, 240, 0.15);
+  --cell-band-sep: rgba(0, 0, 0, 0.12);
 
   /* Exam palette - INVARIATA */
   --color-exam-1:  #E8543F;
@@ -60,40 +60,41 @@
   --color-exam-12: #E67E22;
 
   /* Stats — colore "effettivo" del chart globale (distinto da accent) */
-  --color-stats-actual: #2E86C1;
+  --color-stats-actual: #52525b;
 }
 
 .dark {
-  --color-app-bg: #060916;
-  --color-app-card: rgba(20, 25, 45, 0.55);
+  --color-app-bg: #0a0a0a;
+  --color-app-card: rgba(28, 28, 30, 0.60);
   --color-app-cell: rgba(255, 255, 255, 0.025);
   --color-app-cell-border: rgba(255, 255, 255, 0.06);
   --color-app-soft: rgba(255, 255, 255, 0.06);
   --color-app-hover: rgba(255, 255, 255, 0.10);
 
-  --color-app-border: rgba(255, 255, 255, 0.08);
+  --color-app-border: rgba(255, 255, 255, 0.10);
   --color-app-input-bg: rgba(255, 255, 255, 0.06);
-  --color-app-input-border: rgba(255, 255, 255, 0.10);
+  --color-app-input-border: rgba(255, 255, 255, 0.12);
 
-  --color-app-fg: #e7ebf2;
+  --color-app-fg: #fafafa;
   --color-app-muted: rgba(255, 255, 255, 0.55);
 
-  --color-app-accent: #e7ebf2;
-  --color-app-accent-fg: #060916;
+  --color-app-accent: #fafafa;
+  --color-app-accent-fg: #0a0a0a;
   --color-app-accent-hover: #ffffff;
 
   --color-app-danger: #ff6b5a;
   --color-app-danger-soft: rgba(255, 107, 90, 0.15);
   --color-app-danger-fg: #ff8b7d;
 
-  --color-app-focus-ring: rgba(70, 130, 240, 0.55);
+  --color-app-focus-ring: rgba(255, 255, 255, 0.30);
 
-  --aurora-1: rgba(70, 130, 240, 0.55);
-  --aurora-2: rgba(40, 100, 200, 0.40);
-  --aurora-3: rgba(70, 130, 240, 0.30);
+  /* Aurora dark: discreto glow bianco neutro */
+  --aurora-1: rgba(255, 255, 255, 0.10);
+  --aurora-2: rgba(255, 255, 255, 0.07);
+  --aurora-3: rgba(255, 255, 255, 0.05);
   --cell-band-sep: rgba(255, 255, 255, 0.10);
 
-  --color-stats-actual: #5fa9e8;
+  --color-stats-actual: #a1a1aa;
 }
 
 @layer base {
@@ -149,10 +150,10 @@
   }
   .lift-hover:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(70, 130, 240, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
   }
   .dark .lift-hover:hover {
-    box-shadow: 0 4px 14px rgba(70, 130, 240, 0.25);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   }
 
   @media (prefers-reduced-motion: reduce) {
