@@ -160,9 +160,23 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Linea che si disegna progressivamente quando la task viene chiusa.
+     Usa background-image (no pseudo-element) per animare scaleX su background-size. */
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 60%;
+  background-repeat: no-repeat;
+  background-size: 0% 1.5px;
+  transition: background-size 450ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 300ms ease-out 200ms;
 }
-.chain-node.done .chain-node-title { text-decoration: line-through; color: var(--muted); }
-.chain-node.done { opacity: 0.55; }
+.chain-node.done .chain-node-title {
+  background-size: 100% 1.5px;
+  color: var(--muted);
+}
+.chain-node {
+  transition: opacity 300ms ease-out 150ms;
+}
+.chain-node.done { opacity: 0.6; }
 
 .chain-node-meta {
   display: flex;
