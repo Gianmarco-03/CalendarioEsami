@@ -25,15 +25,16 @@ L'app è ad uso personale del singolo sviluppatore (Windows), quindi installazio
 | 1 | **Esame imminente** | per ogni appello: T-7gg, T-3gg, T-1gg (08:00), e mattina dell'appello (07:30) | ✅ |
 | 2 | **Progetto: inizio range** | mattina (08:00) del primo giorno di ogni `ProjectRange` | ✅ |
 | 3 | **Progetto: deadline** | T-3gg, T-1gg, e giorno della consegna (mattina) — l'ultimo giorno del `ProjectRange` finale | ✅ |
-| 4 | **Promemoria studio** | ogni giorno all'orario configurabile (default **18:00**) se nessun esame attivo ha minuti registrati per oggi | ✅ |
+| 4 | **Promemoria studio** | ogni giorno, eventualemente più volte al giorno. Configurabile (default **1** notifica alle **18:00**) se nessun esame attivo ha minuti registrati per oggi | ✅ |
 | 5 | **Mancato studio** | sera (default **22:00**), giorni feriali, se totale minuti del giorno = 0 e ci sono esami attivi | ✅ |
 | 6 | **Milestone streak** | al raggiungimento di 7 / 14 / 30 / 60 / 100 giorni consecutivi con ≥1 esame studiato | ✅ |
-| 7 | **Log rapido programmato** | orari configurabili (default lista vuota — l'utente li aggiunge); notifica con azioni `+15 / +30 / +60 / Snooze` | ❌ |
+| 7 | **Log rapido programmato** | orari configurabili (default lista vuota — l'utente li aggiunge); notifica con azioni `+15 / +30 / +60 / Snooze` | ✅ |
 
 Note:
 - Le notifiche 1, 2, 3 si calcolano per ciascun esame/progetto attivo (`passed = false`).
 - "Esame attivo" = `passed = false`.
 - Lo streak si calcola sui giorni con `SUM(study_days.minutes) > 0` su tutti gli esami attivi.
+
 
 ## 3. Architettura
 
@@ -204,7 +205,7 @@ Implementazione:
 ## 7. Autostart e tray persistence
 
 - `tauri-plugin-autostart` registra l'app per partire al login Windows.
-- Toggle "Avvia con Windows" nelle impostazioni (default **ON** alla prima installazione).
+- Toggle "Avvia con Windows" nella sottosezione **App e sistema** delle impostazioni (default **OFF**: l'utente deve attivarlo esplicitamente, coerente con la filosofia del master toggle notifiche).
 - Quando l'app parte all'autostart: nasconde la finestra principale, lascia solo tray icon. Loop notifiche attivo.
 - Click X sulla finestra principale = **minimizza in tray**, non chiude. Solo "Esci" dal tray chiude davvero.
 
@@ -215,25 +216,72 @@ Implementazione:
 
 ## 9. UI: pannello impostazioni notifiche
 
-In `src/components/SettingsModal.tsx` aggiungere sezione "Notifiche":
+### 9.1 Struttura della SettingsModal
+
+La `SettingsModal` esistente viene riorganizzata in **sottosezioni distinte** con header dedicati e separatori, montate verticalmente nello stesso modal:
+
+```
+Impostazioni
+├── ▸ Tema                           (esistente)
+├── ▸ Notifiche                      (NUOVA — sottosezione apposita)
+├── ▸ App e sistema                  (NUOVA — autostart, tray)
+└── ▸ Profilo utente                 (placeholder esistente)
+```
+
+La sezione **Notifiche** è implementata in `src/components/NotificationsSettings.tsx` (componente dedicato), importata e renderizzata dentro `SettingsModal.tsx`. Stessa cosa per "App e sistema" (componente `SystemSettings.tsx`).
+
+Questo isolamento serve a:
+- mantenere `SettingsModal.tsx` corto e leggibile,
+- testare/iterare la UI delle notifiche in modo indipendente,
+- preparare il terreno se in futuro la lista cresce (split in tabs).
+
+### 9.2 Master toggle (gate globale)
+
+In cima alla sottosezione Notifiche c'è un **master toggle "Abilita notifiche"** che funge da gate:
+
+- **Default: OFF**. L'utente deve attivare esplicitamente le notifiche al primo uso — niente notifiche a sorpresa.
+- Quando il master è OFF: lo scheduler non parte (o resta idle senza inviare). I sotto-toggle sono visibili ma disabilitati visivamente (grigi/non cliccabili), e il loro stato salvato è preservato per quando il master viene riattivato.
+- Quando il master è ON: lo scheduler parte. Vengono richiesti i permessi notifiche di Windows (`requestPermission()`) se non già concessi. Se l'utente nega, mostra inline banner di errore.
+- La preferenza master è salvata in `notification_prefs` con `kind = "_master"`.
+
+### 9.3 Layout della sottosezione Notifiche
 
 ```
 Notifiche
+│
+├── ☐ Abilita notifiche                              ← MASTER, default OFF
+│   (quando OFF, tutto sotto è disabilitato/grigio)
+│
+├── ─── Tipi di notifica ───
 ├── ☑ Esami imminenti       [offsets: ☑7gg ☑3gg ☑1gg ☑mattina]
 ├── ☑ Inizio progetti
 ├── ☑ Deadline progetti     [offsets: ☑3gg ☑1gg ☑giorno]
-├── ☑ Promemoria studio     [ora: 18:00 ▼]
-├── ☑ Mancato studio        [ora: 22:00 ▼]  [☑ solo feriali]
+├── ☑ Promemoria studio     [orari: 18:00 ✕]  [+ aggiungi orario]
+├── ☑ Mancato studio        [ora: 22:00 ▼]   [☑ solo feriali]
 ├── ☑ Milestone streak      [🔊 con suono]
-├── ☐ Log rapido programmato [orari: + aggiungi]
+├── ☑ Log rapido programmato [orari: + aggiungi]
 │
-├── ─────────────────────────
+├── ─── Quick log ───
 ├── Hotkey quick log: [Ctrl+Alt+S]  [Cambia]
+│
+└── [Invia notifica di test]                          ← chiama notif_test_send
+```
+
+I default ON/OFF dei singoli tipi sono quelli della tabella in §2. Restano ON di default ma **invisibili finché il master non viene attivato**.
+
+### 9.4 Layout della sottosezione App e sistema
+
+```
+App e sistema
 ├── ☑ Avvia con Windows
 └── ☑ Minimizza in tray invece di chiudere
 ```
 
-Tutte le preferenze persistite nella tabella `notification_prefs` tramite i comandi dedicati `get_notif_prefs` / `set_notif_pref` (vedi sezione 10). I comandi `get_setting` / `set_setting` esistenti restano riservati ad altre impostazioni globali (tema, ecc.).
+Anche queste preferenze sono salvate in `notification_prefs` con kind dedicati (`_autostart`, `_minimize_to_tray`) per riusare lo stesso storage senza creare una nuova tabella.
+
+### 9.5 Persistenza
+
+Tutte le preferenze (incluso master, sotto-tipi, hotkey, autostart, minimize-to-tray) sono persistite nella tabella `notification_prefs` tramite i comandi dedicati `get_notif_prefs` / `set_notif_pref` (vedi sezione 10). I comandi `get_setting` / `set_setting` esistenti restano riservati ad altre impostazioni globali (tema, ecc.).
 
 ## 10. Comandi Tauri da aggiungere
 
@@ -280,6 +328,6 @@ Tutte le preferenze persistite nella tabella `notification_prefs` tramite i coma
 
 **Nuovi file Rust:** `notify/{mod,scheduler,rules,dedup,types,actions}.rs`, `quicklog/{mod,tray}.rs`, `db/migrations/005_notifications.sql`.
 
-**Nuovi file frontend:** `src/components/NotificationsSettings.tsx`, `src/quicklog.tsx`, `src/quicklog.html`, `src/notifications.ts`.
+**Nuovi file frontend:** `src/components/NotificationsSettings.tsx`, `src/components/SystemSettings.tsx`, `src/quicklog.tsx`, `src/quicklog.html`, `src/notifications.ts`.
 
 **File modificati:** `src-tauri/src/lib.rs` (setup loop + plugin), `src-tauri/src/commands.rs` (nuovi comandi), `src-tauri/tauri.conf.json` (finestra quicklog + tray + bundle), `src-tauri/capabilities/default.json` (permessi), `src/components/SettingsModal.tsx` (sezione notifiche).
