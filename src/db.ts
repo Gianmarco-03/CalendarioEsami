@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Exam, Esame, Progetto, ExamInput, ImportReport, StudyDay } from "./types";
+import type { Task, TaskInput } from "./task-types";
 
 type EsameWire    = Omit<Esame,    "studyDays" | "defaultStudyMinutes"> & { study_days: StudyDay[]; default_study_minutes: number };
 type ProgettoWire = Omit<Progetto, "studyDays" | "defaultStudyMinutes"> & { study_days: StudyDay[]; default_study_minutes: number };
@@ -80,4 +81,44 @@ export async function quicklogRecentExam(): Promise<number | null> {
 export async function quicklogActiveExams(): Promise<ActiveExamLite[]> {
   const rows = await invoke<Array<[number, string, string]>>("quicklog_active_exams");
   return rows.map(([id, name, color]) => ({ id, name, color }));
+}
+
+// ---------- Tasks ----------
+// Wire types: backend usa snake_case via serde rename_all="camelCase"
+// quindi Task arriva già in camelCase. Nessuna transform necessaria.
+
+export async function listTasks(): Promise<Task[]> {
+  return await invoke<Task[]>("list_tasks");
+}
+
+export async function getTask(id: number): Promise<Task> {
+  return await invoke<Task>("get_task", { id });
+}
+
+export async function createTask(input: TaskInput): Promise<Task> {
+  return await invoke<Task>("create_task", { input });
+}
+
+export async function updateTask(id: number, input: TaskInput): Promise<Task> {
+  return await invoke<Task>("update_task", { id, input });
+}
+
+export async function deleteTask(id: number): Promise<void> {
+  await invoke("delete_task", { id });
+}
+
+export async function setTaskDone(id: number, done: boolean): Promise<void> {
+  await invoke("set_task_done", { id, done });
+}
+
+export async function setChecklistItemDone(itemId: number, done: boolean): Promise<void> {
+  await invoke("set_checklist_item_done", { itemId, done });
+}
+
+export async function addTaskLink(predId: number, succId: number): Promise<void> {
+  await invoke("add_task_link", { predId, succId });
+}
+
+export async function removeTaskLink(predId: number, succId: number): Promise<void> {
+  await invoke("remove_task_link", { predId, succId });
 }
