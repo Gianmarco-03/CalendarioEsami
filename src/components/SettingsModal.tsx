@@ -4,6 +4,7 @@ import { useTheme } from "../theme";
 import { Sun, Moon, Settings as SettingsIcon } from "lucide-react";
 import { NotificationsSettings } from "./NotificationsSettings";
 import { SystemSettings } from "./SystemSettings";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface SettingsModalProps {
   open: boolean;
@@ -61,11 +62,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       </Section>
 
       <Section title="Notifiche">
-        <NotificationsSettings />
+        <ErrorBoundary fallbackTitle="Errore in NotificationsSettings">
+          <NotificationsSettings />
+        </ErrorBoundary>
       </Section>
 
       <Section title="App e sistema">
-        <SystemSettings />
+        <ErrorBoundary fallbackTitle="Errore in SystemSettings">
+          <SystemSettings />
+        </ErrorBoundary>
       </Section>
 
       <Section title="Profilo utente">
