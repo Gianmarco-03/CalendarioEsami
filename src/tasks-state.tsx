@@ -13,6 +13,8 @@ interface TasksContextValue {
   setDone: (id: number, done: boolean) => Promise<boolean>;
   addLink: (predId: number, succId: number) => Promise<boolean>;
   removeLink: (predId: number, succId: number) => Promise<boolean>;
+  /** Rimuove TUTTI i link predecessore di `id` (task torna root standalone). */
+  detachTask: (id: number) => Promise<boolean>;
   setChecklistItemDone: (itemId: number, done: boolean) => Promise<boolean>;
 }
 
@@ -92,10 +94,23 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     } catch (err) { toast.error(String(err)); return false; }
   }, [refetch, toast]);
 
+  const detachTask = useCallback(async (id: number) => {
+    const t = tasks.find((x) => x.id === id);
+    if (!t) { toast.error(`Task ${id} non trovata`); return false; }
+    if (t.predecessorIds.length === 0) return true; // già standalone, no-op
+    try {
+      for (const predId of t.predecessorIds) {
+        await db.removeTaskLink(predId, id);
+      }
+      await refetch();
+      return true;
+    } catch (err) { toast.error(String(err)); return false; }
+  }, [tasks, refetch, toast]);
+
   const value = useMemo<TasksContextValue>(() => ({
     tasks, loading, refetch, create, update, remove, setDone,
-    addLink, removeLink, setChecklistItemDone,
-  }), [tasks, loading, refetch, create, update, remove, setDone, addLink, removeLink, setChecklistItemDone]);
+    addLink, removeLink, detachTask, setChecklistItemDone,
+  }), [tasks, loading, refetch, create, update, remove, setDone, addLink, removeLink, detachTask, setChecklistItemDone]);
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;
 }

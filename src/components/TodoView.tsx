@@ -1,5 +1,5 @@
 import "./todo/todo.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type DragEvent } from "react";
 import { ListTodo, Plus } from "lucide-react";
 import { useTasks } from "../tasks-state";
 import { useExams } from "../state";
@@ -10,8 +10,10 @@ import { ChainRow } from "./todo/ChainRow";
 import { TaskModal, type ModalState } from "./todo/TaskModal";
 import { TaskFilters, applyFilters, type TaskFiltersState } from "./todo/TaskFilters";
 
+const DRAG_MIME = "application/x-todo-task-id";
+
 export function TodoView() {
-  const { tasks, loading } = useTasks();
+  const { tasks, loading, detachTask } = useTasks();
   const { exams } = useExams();
   const enumerator = useChainEnumerator();
   const strategy = useOrderingStrategy();
@@ -21,6 +23,28 @@ export function TodoView() {
     hideDone: false, examId: null, minPriority: null,
   });
   const [modalState, setModalState] = useState<ModalState>(null);
+  const [detachActive, setDetachActive] = useState(false);
+
+  // Drop sul background della TodoView (NON su un ChainNode, che fa stopPropagation)
+  // = rimuove tutti i predecessori della task trascinata → torna root standalone.
+  const onViewDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!detachActive) setDetachActive(true);
+  };
+  const onViewDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    // Clear solo quando il drag esce davvero dal contenitore (non quando entra in un figlio)
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setDetachActive(false);
+  };
+  const onViewDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDetachActive(false);
+    const id = Number(e.dataTransfer.getData(DRAG_MIME));
+    if (!Number.isFinite(id)) return;
+    void detachTask(id);
+  };
 
   const filtered = useMemo(() => applyFilters(tasks, filters), [tasks, filters]);
   const chains = useMemo(() => enumerator.enumerate(filtered), [enumerator, filtered]);
@@ -40,7 +64,12 @@ export function TodoView() {
   }
 
   return (
-    <div className="todo-view view-enter">
+    <div
+      className={`todo-view view-enter${detachActive ? " detach-active" : ""}`}
+      onDragOver={onViewDragOver}
+      onDragLeave={onViewDragLeave}
+      onDrop={onViewDrop}
+    >
       <TaskFilters value={filters} onChange={setFilters} exams={exams} />
       {capReached && (
         <div className="chain-cap-warning" role="alert">

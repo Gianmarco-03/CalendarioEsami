@@ -9,6 +9,27 @@
   padding: 4px 2px 80px 2px;
   height: 100%;
   overflow-y: auto;
+  position: relative;
+}
+
+/* Drag-over sul background (non su un ChainNode) → modalità detach: hint floating */
+.todo-view.detach-active::after {
+  content: "Rilascia qui per scollegare dalla catena";
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--panel-raised);
+  border: 1px dashed var(--brand);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  z-index: 60;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
 }
 
 /* Filters bar */

@@ -74,6 +74,9 @@ function ChainNode({ task, isNextActionable, isLast, onEdit, onAddSuccessor }: C
 
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (currentDraggedId == null) return;
+    // Claim l'evento per il chain-node, anche quando il drop sarebbe invalido —
+    // così non bubble al detach-handler della TodoView (che offrirebbe il drop sbagliato).
+    e.stopPropagation();
     if (!isValidDrop(currentDraggedId)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "link";
@@ -83,6 +86,8 @@ function ChainNode({ task, isNextActionable, isLast, onEdit, onAddSuccessor }: C
   const onDragLeave = () => setIsDropTarget(false);
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    // Stop il bubble per impedire alla TodoView di interpretarlo come "detach".
+    e.stopPropagation();
     e.preventDefault();
     setIsDropTarget(false);
     const raw = e.dataTransfer.getData("application/x-todo-task-id");
