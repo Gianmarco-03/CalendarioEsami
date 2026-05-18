@@ -205,14 +205,14 @@ function Toggle({
         onChange(!checked);
       }}
       className={
-        "relative w-9 h-5 rounded-full transition-colors shrink-0 " +
+        "relative inline-flex items-center w-10 h-5 rounded-full transition-colors shrink-0 p-0.5 " +
         (checked ? "bg-app-accent" : "bg-app-input-border")
       }
     >
       <span
         className={
-          "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform " +
-          (checked ? "translate-x-[18px]" : "translate-x-0.5")
+          "block w-4 h-4 rounded-full bg-white shadow-sm transition-transform " +
+          (checked ? "translate-x-5" : "translate-x-0")
         }
       />
     </button>
