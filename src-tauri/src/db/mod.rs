@@ -12,6 +12,7 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ("003_default_study_minutes", include_str!("migrations/003_default_study_minutes.sql")),
     ("004_exam_icon", include_str!("migrations/004_exam_icon.sql")),
     ("005_notifications", include_str!("migrations/005_notifications.sql")),
+    ("006_tasks", include_str!("migrations/006_tasks.sql")),
 ];
 
 pub fn open(path: &std::path::Path) -> Result<Connection> {
@@ -70,7 +71,8 @@ mod tests {
             tables,
             vec![
                 "appelli", "exams", "notification_log", "notification_prefs",
-                "project_ranges", "settings", "study_days"
+                "project_ranges", "settings", "study_days",
+                "task_checklist", "task_links", "tasks"
             ]
         );
     }
