@@ -233,7 +233,7 @@ fn reachable(conn: &Connection, from: i64, target: i64) -> Result<bool, String> 
 }
 ```
 
-### 5.3 Tauri commands (in `src-tauri/src/main.rs`)
+### 5.3 Tauri commands (in `src-tauri/src/commands.rs`, registrati in `src-tauri/src/lib.rs`)
 
 ```
 list_tasks() -> Vec<Task>
@@ -242,12 +242,12 @@ create_task(input: TaskInput) -> Task
 update_task(id, input: TaskInput) -> Task
 delete_task(id)
 set_task_done(id, done: bool)
-add_task_link(predId, succId)
-remove_task_link(predId, succId)
-set_checklist_item_done(itemId, done: bool)
+add_task_link(pred_id, succ_id)
+remove_task_link(pred_id, succ_id)
+set_checklist_item_done(item_id, done: bool)
 ```
 
-Tutti restituiscono `Result<_, String>` come gli esistenti. Pattern wire identico a `exams.rs` (snake_case via serde rename_all).
+Tutti restituiscono `Result<_, String>` come gli esistenti. Pattern wire identico a `exams.rs` (snake_case via serde rename_all). Tutti i comandi vanno aggiunti all'array `invoke_handler` in `lib.rs:60-80`.
 
 ### 5.4 Frontend `src/db.ts` — nuove funzioni
 
