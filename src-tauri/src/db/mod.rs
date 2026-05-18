@@ -7,6 +7,7 @@ pub mod types;
 pub mod progetto;
 pub mod task_types;
 pub mod tasks;
+pub mod task_links;
 
 const MIGRATIONS: &[(&str, &str)] = &[
     ("001_init", include_str!("migrations/001_init.sql")),
