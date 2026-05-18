@@ -268,7 +268,7 @@ src/
 └── components/todo/
     ├── TodoView.tsx          ← layout host
     ├── ChainRow.tsx          ← una catena come riga
-    ├── TaskCard.tsx          ← singola card
+    │  (no TaskCard separato — ChainNode inline in ChainRow.tsx)
     ├── TaskModal.tsx         ← create/edit + checklist + link picker
     ├── TaskFilters.tsx       ← toolbar (esame, priorità, hide-done)
     ├── LinkPicker.tsx        ← UI per aggiungere/rimuovere link (predecessori/successori)
@@ -501,44 +501,65 @@ export function TodoView() {
 
 Lo stato del modal vive in `TodoView` (non in `App.tsx`) per evitare prop drilling: `TaskModal` ha bisogno solo di `tasks-state.tsx` e `exams-state.tsx` via hook. `App.tsx` non sa nulla del modal task — diversamente da `ExamModal` che è gestito a livello `Shell` perché aperto sia da `Sidebar` che dall'`ExamRow` di altre view.
 
-### 8.2 `components/todo/ChainRow.tsx`
+### 8.2 `components/todo/ChainRow.tsx` — timeline verticale
 
-Una catena = riga orizzontale di `TaskCard`, scrollabile se overflowa, con frecce `→` tra una card e la successiva. Mantiene lo stile mono+nero.
+Una catena = layout **verticale** stile pipeline: a sinistra un "rail" con marker circolare per ogni task + connettore verticale fra task; a destra il contenuto della task (titolo, meta, checklist inline cliccabile).
+
+```
+O Scrivere capitolo 1                      Tesi Fisiologia · 14 mag
+|     ☐ Outline
+|     ☐ Stesura
+|
+O Scrivere capitolo 2                      Tesi · 17 mag · alta
+|     ☐ Rilettura
+|
+O Rilettura & bibliografia                 Tesi
+```
 
 ```tsx
-export function ChainRow({ chain }: { chain: Chain }) {
+export function ChainRow({ chain, onEditTask }) {
+  const next = nextActionable(chain.tasks);
   return (
     <div className="chain-row">
       {chain.tasks.map((t, i) => (
-        <Fragment key={`${chain.pathKey}@${i}`}>
-          <TaskCard task={t} chainPathKey={chain.pathKey} />
-          {i < chain.tasks.length - 1 && <span className="chain-arrow" aria-hidden>→</span>}
-        </Fragment>
+        <ChainNode key={`${chain.pathKey}@${i}`}
+          task={t}
+          isNextActionable={t.id === next?.id}
+          isLast={i === chain.tasks.length - 1}
+          onEdit={() => onEditTask(t.id)} />
       ))}
     </div>
   );
 }
 ```
 
-Stessa task in catene diverse usa `key={chainPathKey@position}` — React deve poter distinguere le istanze rendering. L'identità DB resta `task.id`.
+Stessa task in catene diverse usa `key={chainPathKey@position}` — React deve poter distinguere le istanze rendering. L'identità DB resta `task.id`, quindi `done` resta allineato cross-catena (singolo round-trip backend).
 
-### 8.3 `components/todo/TaskCard.tsx`
+### 8.3 `ChainNode` (inline in `ChainRow.tsx`)
+
+Ogni nodo della catena è un sub-componente con due colonne:
+- **rail (22px)**: marker circolare colorato come l'esame della task + connettore verticale verso il nodo successivo
+- **content (1fr)**: head row (titolo + meta) cliccabile per aprire il `TaskModal` in edit + lista checklist sotto
 
 ```
-┌────────────────────────────────────┐
-│ ▣  Scrivere capitolo 2             │  ← checkbox done, title
-│ ── Tesi Fisiologia · ▢ 2/5 · 14m   │  ← exam color stripe, checklist, due
-└────────────────────────────────────┘
+O    Scrivere capitolo 2          Tesi Fisiologia · 17 mag · alta
+|      ☐ Rilettura
+|      ☐ Bibliografia
+|
 ```
 
-Click sulla card → apre `TaskModal` in edit. Click sulla checkbox → toggle `done`.
+Interazioni:
+- **Click sul marker** (`O`) → toggle `done` della task. Marker pieno = done.
+- **Click sull'head row** (titolo + meta) → apre `TaskModal` per edit.
+- **Click su un checkbox di un item** → chiama `setChecklistItemDone(itemId, !done)` direttamente. **Niente apertura modal**: l'utente può spuntare gli item senza navigare.
 
 Stato visivo:
-- `done` → opacity 0.45, line-through sul titolo.
-- `nextActionable` della catena → border accent (`var(--brand-edge)`).
-- Priorità `urgent` → pill rossa-tenue (`var(--danger-soft)`).
-- Priorità `high` → pill warn (`var(--warn-soft)`).
-- `normal`/`low` → nessuna pill.
+- `done` → opacity 0.55, line-through sul titolo, marker pieno con colore esame
+- `next-actionable` → marker con halo `box-shadow` accent
+- Priorità `high`/`urgent` → pill colorate (warn/danger) nella meta row
+- Checklist item `done` → muted + line-through
+
+Non c'è `TaskCard.tsx` separato: la struttura verticale rende il "card" un dettaglio sub-component privato di `ChainRow.tsx`.
 
 ### 8.4 `components/todo/TaskModal.tsx`
 
@@ -580,20 +601,29 @@ Nessuna task per ora
 
 ## 10. CSS — `src/components/todo/todo.css`
 
-Token riusati (`--panel`, `--card`, `--border-strong`, `--brand-edge`, etc.). Nuovi solo selettori `.todo-view`, `.chain-row`, `.chain-arrow`, `.task-card`, `.prio-pill`, `.link-picker`. Tema dark coerente con il resto (Nexo Note, mono+nero).
+Token riusati (`--panel`, `--border-strong`, `--brand-edge`, `--warn`, `--danger`, etc.). Selettori nuovi: `.todo-view`, `.todo-filters`, `.chain-cap-warning`, `.chain-list`, `.chain-row`, `.chain-node`, `.chain-node-rail`, `.chain-node-marker`, `.chain-connector`, `.chain-node-content`, `.chain-node-head`, `.chain-node-title`, `.chain-node-meta`, `.chain-checklist`, `.chain-checklist-item`, `.prio-pill`, `.todo-fab`, `.todo-empty`, `.link-picker`. Tema dark coerente con il resto (Nexo Note, mono+nero).
 
 `.chain-row`:
-- `display: flex; align-items: stretch; overflow-x: auto`
-- `padding: 10px 12px` background `var(--panel)` border `var(--border)` `border-radius: var(--radius-lg)`
-- Stack verticale: `.chain-list` `display: flex; flex-direction: column; gap: 10px`
+- `display: flex; flex-direction: column`
+- `padding: 14px 16px` background `var(--panel)` border `var(--border)` `border-radius: var(--radius-lg)`
+- Container `.chain-list` impila verticalmente con `gap: 10px`.
 
-`.task-card`:
-- min-width 220px max-width 280px
-- `var(--card)` border `var(--border-strong)` radius `var(--radius-md)`
-- transitions: `transform var(--motion-fast)`, hover `transform: translateY(-1px)`
+`.chain-node`:
+- `display: grid; grid-template-columns: 22px 1fr; gap: 12px`
+- Custom prop `--marker-color` settato sul nodo, default `var(--ink-50)`, sovrascritto dal colore dell'esame della task.
 
-`.chain-arrow`:
-- font-family mono, color `var(--muted)`, padding `0 8px`, align-self center
+`.chain-node-marker`:
+- 14×14 cerchio con border 2px del colore marker.
+- Quando `.done` → background pieno (colore marker).
+- Quando `.next-actionable` → box-shadow halo accent.
+
+`.chain-connector`:
+- Width 2px, `background: var(--border-strong)`, occupa lo spazio verticale fra un marker e quello successivo (`flex: 1`).
+- Nascosto sull'ultimo nodo (`.chain-node.is-last`).
+
+`.chain-checklist-item`:
+- Bullet `*` via `::before`, checkbox interagibile, label.
+- Stato `.done` → muted + line-through.
 
 ## 11. Modulo `App.tsx` — modifiche
 
@@ -663,8 +693,7 @@ Aggiungere `<TasksProvider>` dentro `<ExamsProvider>`. `TodoView` non riceve pro
 - `src/link-validator.ts`
 - `src/tasks-state.tsx`
 - `src/components/todo/TodoView.tsx` (riscrittura — oggi è placeholder)
-- `src/components/todo/ChainRow.tsx`
-- `src/components/todo/TaskCard.tsx`
+- `src/components/todo/ChainRow.tsx` (include `ChainNode` inline come sub-componente del layout verticale)
 - `src/components/todo/TaskModal.tsx`
 - `src/components/todo/TaskFilters.tsx`
 - `src/components/todo/LinkPicker.tsx`
@@ -703,7 +732,7 @@ Audit puntuale dell'architettura proposta. Per ogni principio: cosa è soddisfat
 **Aggiunta di una nuova `OrderingStrategy`** ("voglio pesare per minuti studiati"):
 1. Nuovo file `src/strategies/study-weighted-ordering.ts` che implementa `OrderingStrategy`.
 2. Provider nel root: `<OrderingStrategyContext.Provider value={studyWeightedStrategy}>`.
-3. **Zero modifiche** a: `chain-enumerator.ts`, `TodoView`, `ChainRow`, `TaskCard`, `task-domain.ts`.
+3. **Zero modifiche** a: `chain-enumerator.ts`, `TodoView`, `ChainRow`, `task-domain.ts`.
 
 **Aggiunta di un nuovo `ChainEnumerator`** ("voglio collassare il prefisso done"):
 1. Nuovo `collapseDoneEnumerator` che implementa `ChainEnumerator`.
@@ -770,6 +799,6 @@ Contratti formali pubblicati nel file di interface:
    export function coachStrategy(exams: Exam[]): OrderingStrategy { ... }
    ```
 2. In `App.tsx`: leggere setting / context per scegliere strategia, wrappare in Provider.
-3. **Zero modifiche** a: `chain-enumerator.ts`, `ordering-strategy.ts` (default), `TodoView`, `ChainRow`, `TaskCard`, `task-domain.ts`, `tasks-state.tsx`.
+3. **Zero modifiche** a: `chain-enumerator.ts`, `ordering-strategy.ts` (default), `TodoView`, `ChainRow`, `task-domain.ts`, `tasks-state.tsx`.
 
 L'estensione tocca **solo** il file nuovo + il Provider nel root. È il test pratico che OCP/DIP sono soddisfatti.
