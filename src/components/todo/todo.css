@@ -1,0 +1,176 @@
+/* ============================================================================
+   TO-DO — chain timeline, task cards, modal/link picker
+   ========================================================================= */
+
+.todo-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px 80px 2px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Filters bar */
+.todo-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.todo-filters select {
+  background: var(--panel-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.todo-filters .pill-group {
+  display: inline-flex;
+  background: var(--hover);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+}
+
+.todo-filters .pill-group button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--motion-fast);
+}
+
+.todo-filters .pill-group button.on {
+  background: var(--brand);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+/* Chain list */
+.chain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chain-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+.chain-arrow {
+  align-self: center;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Task card */
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  max-width: 280px;
+  padding: 9px 11px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform var(--motion-fast), border-color var(--motion-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.task-card:hover { transform: translateY(-1px); border-color: var(--brand-edge); }
+.task-card.next-actionable { border-color: var(--brand-edge); box-shadow: 0 0 0 1px var(--brand-soft), var(--shadow-sm); }
+.task-card.done { opacity: 0.45; }
+.task-card.done .task-title { text-decoration: line-through; color: var(--muted); }
+
+.task-card-top { display: flex; align-items: center; gap: 7px; }
+.task-card-stripe { width: 3px; height: 14px; border-radius: 2px; background: var(--ink-50); flex-shrink: 0; }
+.task-title { color: var(--text); font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-checkbox { width: 14px; height: 14px; cursor: pointer; accent-color: var(--text); }
+.task-card-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; color: var(--muted); font-size: 10px; }
+
+.prio-pill {
+  font-size: 10px; padding: 1px 6px; border-radius: var(--radius-sm);
+  border: 1px solid; font-family: inherit;
+}
+.prio-pill.high { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+.prio-pill.urgent { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-edge); }
+
+/* Floating action button */
+.todo-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--bg);
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  transition: transform var(--motion-fast);
+}
+.todo-fab:hover { transform: scale(1.05); }
+
+/* Empty state */
+.todo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  padding: 40px 20px;
+}
+.todo-empty .icon-box {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+}
+.todo-empty h2 { font-family: var(--font-display); color: var(--text); font-size: 18px; margin: 0; }
+.todo-empty p { max-width: 340px; text-align: center; font-size: 12px; line-height: 1.55; margin: 0; }
+
+/* Link picker (in modal) */
+.link-picker {
+  display: flex; flex-direction: column; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.link-picker h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.link-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-overlay); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.link-row .name { flex: 1; color: var(--text); }
+.link-row button.remove { background: transparent; border: none; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 12px; }
+.link-row button.remove:hover { color: var(--danger); }
+.link-picker select { width: 100%; background: var(--panel-overlay); border: 1px solid var(--border-strong); color: var(--text); border-radius: var(--radius-sm); padding: 4px 8px; font-family: inherit; }
