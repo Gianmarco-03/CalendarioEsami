@@ -60,6 +60,18 @@
   font-weight: 600;
 }
 
+/* Chain cap warning banner */
+.chain-cap-warning {
+  padding: 8px 12px;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  color: var(--warn);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
 /* Chain list */
 .chain-list {
   display: flex;

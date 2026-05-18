@@ -26,6 +26,10 @@ export function TodoView() {
   const chains = useMemo(() => enumerator.enumerate(filtered), [enumerator, filtered]);
   const sorted = useMemo(() => sortChains(chains, strategy, today), [chains, strategy, today]);
 
+  // Default cap in maximalPathEnumerator is 200. If raggiunto, segnalo all'utente.
+  const CHAIN_CAP = 200;
+  const capReached = chains.length >= CHAIN_CAP;
+
   if (loading && tasks.length === 0) {
     return (
       <div className="todo-empty view-enter">
@@ -38,6 +42,11 @@ export function TodoView() {
   return (
     <div className="todo-view view-enter">
       <TaskFilters value={filters} onChange={setFilters} exams={exams} />
+      {capReached && (
+        <div className="chain-cap-warning" role="alert">
+          Troppe catene possibili. Mostrate prime {CHAIN_CAP}.
+        </div>
+      )}
       {sorted.length === 0 ? (
         <div className="todo-empty">
           <div className="icon-box"><ListTodo size={26} strokeWidth={1.5} /></div>
