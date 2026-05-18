@@ -66,3 +66,18 @@ export async function getSetting(key: string): Promise<string | null> {
 export async function setSetting(key: string, value: string): Promise<void> {
   await invoke("set_setting", { key, value });
 }
+
+export interface ActiveExamLite { id: number; name: string; color: string }
+
+export async function quicklogLog(examId: number, minutes: number): Promise<void> {
+  await invoke("quicklog_log", { examId, minutes });
+}
+
+export async function quicklogRecentExam(): Promise<number | null> {
+  return await invoke<number | null>("quicklog_recent_exam");
+}
+
+export async function quicklogActiveExams(): Promise<ActiveExamLite[]> {
+  const rows = await invoke<Array<[number, string, string]>>("quicklog_active_exams");
+  return rows.map(([id, name, color]) => ({ id, name, color }));
+}
