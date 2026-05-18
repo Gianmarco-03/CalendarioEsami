@@ -1,5 +1,6 @@
 pub mod db;
 pub mod commands;
+pub mod notify;
 
 use tauri::Manager;
 
