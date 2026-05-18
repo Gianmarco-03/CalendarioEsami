@@ -10,6 +10,8 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ("001_init", include_str!("migrations/001_init.sql")),
     ("002_study_minutes", include_str!("migrations/002_study_minutes.sql")),
     ("003_default_study_minutes", include_str!("migrations/003_default_study_minutes.sql")),
+    ("004_exam_icon", include_str!("migrations/004_exam_icon.sql")),
+    ("005_notifications", include_str!("migrations/005_notifications.sql")),
 ];
 
 pub fn open(path: &std::path::Path) -> Result<Connection> {
@@ -64,7 +66,13 @@ mod tests {
             .unwrap()
             .map(|r| r.unwrap())
             .collect();
-        assert_eq!(tables, vec!["appelli", "exams", "project_ranges", "settings", "study_days"]);
+        assert_eq!(
+            tables,
+            vec![
+                "appelli", "exams", "notification_log", "notification_prefs",
+                "project_ranges", "settings", "study_days"
+            ]
+        );
     }
 
     #[test]
