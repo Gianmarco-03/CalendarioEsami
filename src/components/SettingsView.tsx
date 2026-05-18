@@ -1,70 +1,33 @@
-import { useState } from "react";
-import { Sun, Moon, Palette, Bell, Cog, User } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { useTheme } from "../theme";
 import { NotificationsSettings } from "./NotificationsSettings";
 import { SystemSettings } from "./SystemSettings";
 import { ErrorBoundary } from "./ErrorBoundary";
+import type { SettingsTab } from "./settings-tabs";
 
-type SettingsTab = "personalization" | "notifications" | "system" | "profile";
-
-interface TabMeta {
-  id: SettingsTab;
-  label: string;
-  Icon: typeof Palette;
+interface SettingsViewProps {
+  tab: SettingsTab;
 }
 
-const TABS: TabMeta[] = [
-  { id: "personalization", label: "Personalizzazione", Icon: Palette },
-  { id: "notifications",   label: "Notifiche",         Icon: Bell },
-  { id: "system",          label: "App e sistema",     Icon: Cog },
-  { id: "profile",         label: "Profilo utente",    Icon: User },
-];
-
-export function SettingsView() {
-  const [active, setActive] = useState<SettingsTab>("personalization");
-
+export function SettingsView({ tab }: SettingsViewProps) {
   return (
-    <div className="flex-1 min-h-0 flex gap-4">
-      <nav className="w-[200px] shrink-0 flex flex-col gap-1">
-        {TABS.map(({ id, label, Icon }) => {
-          const isActive = id === active;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActive(id)}
-              className={
-                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors " +
-                (isActive
-                  ? "bg-app-accent text-app-accent-fg shadow-sm"
-                  : "text-app-fg hover:bg-app-hover")
-              }
-            >
-              <Icon size={15} />
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      <section className="flex-1 min-w-0 overflow-y-auto pr-1">
-        {active === "personalization" && <PersonalizationPanel />}
-        {active === "notifications" && (
-          <ErrorBoundary fallbackTitle="Errore in NotificationsSettings">
-            <Panel title="Notifiche" description="Cosa, quando e come ti viene mostrato.">
-              <NotificationsSettings />
-            </Panel>
-          </ErrorBoundary>
-        )}
-        {active === "system" && (
-          <ErrorBoundary fallbackTitle="Errore in SystemSettings">
-            <Panel title="App e sistema" description="Avvio con Windows e comportamento di chiusura.">
-              <SystemSettings />
-            </Panel>
-          </ErrorBoundary>
-        )}
-        {active === "profile" && <ProfilePanel />}
-      </section>
+    <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+      {tab === "personalization" && <PersonalizationPanel />}
+      {tab === "notifications" && (
+        <ErrorBoundary fallbackTitle="Errore in NotificationsSettings">
+          <Panel title="Notifiche" description="Cosa, quando e come ti viene mostrato.">
+            <NotificationsSettings />
+          </Panel>
+        </ErrorBoundary>
+      )}
+      {tab === "system" && (
+        <ErrorBoundary fallbackTitle="Errore in SystemSettings">
+          <Panel title="App e sistema" description="Avvio con Windows e comportamento di chiusura.">
+            <SystemSettings />
+          </Panel>
+        </ErrorBoundary>
+      )}
+      {tab === "profile" && <ProfilePanel />}
     </div>
   );
 }

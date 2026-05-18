@@ -1,7 +1,8 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
-import { Plus, Upload, Search, Settings as SettingsIcon, Globe } from "lucide-react";
+import { Plus, Upload, Search, Settings as SettingsIcon, Globe, ArrowLeft } from "lucide-react";
 import { SectionSwitcher, type AppSection } from "./SectionSwitcher";
+import { SETTINGS_TABS, type SettingsTab } from "./settings-tabs";
 
 interface SidebarProps {
   section: AppSection;
@@ -12,9 +13,19 @@ interface SidebarProps {
   onOpenSettings: () => void;
   selectedExamId?: number | null;
   onSelectExam?: (id: number | null) => void;
+  settingsTab: SettingsTab;
+  onSettingsTabChange: (t: SettingsTab) => void;
 }
 
-export function Sidebar({
+export function Sidebar(props: SidebarProps) {
+  const { section } = props;
+  if (section === "settings") {
+    return <SettingsSidebar {...props} />;
+  }
+  return <ExamsSidebar {...props} />;
+}
+
+function ExamsSidebar({
   section, onSectionChange, onAdd, onEdit, onImport, onOpenSettings,
   selectedExamId, onSelectExam,
 }: SidebarProps) {
@@ -121,6 +132,53 @@ export function Sidebar({
           className="p-2 rounded-lg text-app-muted hover:bg-app-hover hover:text-app-fg transition-colors"
         ><SettingsIcon size={16} /></button>
       </div>
+    </aside>
+  );
+}
+
+function SettingsSidebar({
+  onSectionChange, settingsTab, onSettingsTabChange,
+}: SidebarProps) {
+  return (
+    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl glass-panel shadow-sm p-4 flex flex-col">
+      <button
+        type="button"
+        onClick={() => onSectionChange("calendar")}
+        className="flex items-center gap-2 px-2 py-1.5 mb-3 rounded-lg text-[12.5px] font-medium text-app-muted hover:text-app-fg hover:bg-app-hover transition-colors self-start"
+      >
+        <ArrowLeft size={14} /> Torna all'app
+      </button>
+
+      <h2 className="font-semibold text-[15px] mb-1 flex items-center gap-2">
+        <SettingsIcon size={15} />
+        Impostazioni
+      </h2>
+      <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
+        Configura aspetto, notifiche e comportamento dell'app.
+      </p>
+
+      <nav className="flex flex-col gap-1">
+        {SETTINGS_TABS.map(({ id, label, Icon }) => {
+          const isActive = id === settingsTab;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSettingsTabChange(id)}
+              className={
+                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors " +
+                (isActive
+                  ? "bg-app-accent text-app-accent-fg shadow-sm"
+                  : "text-app-fg hover:bg-app-hover")
+              }
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon size={15} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </aside>
   );
 }

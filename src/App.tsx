@@ -9,6 +9,7 @@ import { ImportModal } from "./components/ImportModal";
 import { StatsView } from "./components/StatsView";
 import { TodoView } from "./components/TodoView";
 import { SettingsView } from "./components/SettingsView";
+import type { SettingsTab } from "./components/settings-tabs";
 import type { AppSection } from "./components/SectionSwitcher";
 import type { ExamKind } from "./types";
 import { CalendarDays, BarChart3, ListTodo, Globe, Settings as SettingsIcon } from "lucide-react";
@@ -29,6 +30,7 @@ function Shell() {
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [section, setSection] = useState<AppSection>("calendar");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("personalization");
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
   const editing = editingId !== null ? exams.find((e) => e.id === editingId) ?? null : null;
@@ -81,6 +83,8 @@ function Shell() {
           onOpenSettings={() => setSection("settings")}
           selectedExamId={selectedExamId}
           onSelectExam={setSelectedExamId}
+          settingsTab={settingsTab}
+          onSettingsTabChange={setSettingsTab}
         />
         <main className="flex-1 min-w-0 h-full flex flex-col rounded-2xl glass-panel shadow-sm p-4 overflow-hidden">
           <StatsHeroTitle section={section} selectedExam={selectedExam} />
@@ -88,7 +92,7 @@ function Shell() {
             {section === "calendar" && <Calendar onDayClick={setDayKey} />}
             {section === "stats" && <StatsView onDayClick={setDayKey} selectedExamId={selectedExamId} />}
             {section === "todo" && <TodoView />}
-            {section === "settings" && <SettingsView />}
+            {section === "settings" && <SettingsView tab={settingsTab} />}
           </div>
         </main>
       </div>
