@@ -8,7 +8,7 @@ import { useOrderingStrategy, sortChains } from "../ordering-strategy";
 import { ymd } from "../date";
 import { ChainRow } from "./todo/ChainRow";
 import { TaskModal, type ModalState } from "./todo/TaskModal";
-import { TaskFilters, applyFilters, type TaskFiltersState } from "./todo/TaskFilters";
+import { TaskFilters, filterChains, type TaskFiltersState } from "./todo/TaskFilters";
 
 const DRAG_MIME = "application/x-todo-task-id";
 
@@ -47,9 +47,12 @@ export function TodoView() {
     void detachTask(id);
   };
 
-  const filtered = useMemo(() => applyFilters(tasks, filters), [tasks, filters]);
-  const chains = useMemo(() => enumerator.enumerate(filtered), [enumerator, filtered]);
+  // Enumeriamo su TUTTI i task (senza pre-filtro): preserva la struttura del DAG.
+  // I filtri vengono applicati al livello della singola catena (vedi filterChains),
+  // così una task done in mezzo a `A→B→C` non fa sparire l'intera catena.
+  const chains = useMemo(() => enumerator.enumerate(tasks), [enumerator, tasks]);
   const sorted = useMemo(() => sortChains(chains, strategy, today), [chains, strategy, today]);
+  const visible = useMemo(() => filterChains(sorted, filters), [sorted, filters]);
 
   // Default cap in maximalPathEnumerator is 200. If raggiunto, segnalo all'utente.
   const CHAIN_CAP = 200;
@@ -77,7 +80,7 @@ export function TodoView() {
           Troppe catene possibili. Mostrate prime {CHAIN_CAP}.
         </div>
       )}
-      {sorted.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="todo-empty">
           <div className="icon-box"><ListTodo size={26} strokeWidth={1.5} /></div>
           <h2>{tasks.length === 0 ? "Nessuna task" : "Nessuna task con questi filtri"}</h2>
@@ -89,7 +92,7 @@ export function TodoView() {
         </div>
       ) : (
         <div className="chain-list">
-          {sorted.map((c) => (
+          {visible.map((c) => (
             <ChainRow
               key={c.pathKey}
               chain={c}

@@ -1,5 +1,5 @@
 import type { Exam } from "../../types";
-import type { Task, TaskPriority } from "../../task-types";
+import type { Task, Chain, TaskPriority } from "../../task-types";
 import { PRIORITY_WEIGHT } from "../../task-domain";
 
 export interface TaskFiltersState {
@@ -65,12 +65,25 @@ export function TaskFilters({ value, onChange, exams }: Props) {
   );
 }
 
-export function applyFilters(tasks: Task[], f: TaskFiltersState): Task[] {
-  return tasks.filter((t) => {
-    if (f.hideDone && t.done) return false;
-    if (f.examId === "free" && t.examId != null) return false;
-    if (typeof f.examId === "number" && t.examId !== f.examId) return false;
-    if (f.minPriority && PRIORITY_WEIGHT[t.priority] < PRIORITY_WEIGHT[f.minPriority]) return false;
-    return true;
-  });
+/** True se la task `t` passa i filtri. */
+function passesFilters(t: Task, f: TaskFiltersState): boolean {
+  if (f.hideDone && t.done) return false;
+  if (f.examId === "free" && t.examId != null) return false;
+  if (typeof f.examId === "number" && t.examId !== f.examId) return false;
+  if (f.minPriority && PRIORITY_WEIGHT[t.priority] < PRIORITY_WEIGHT[f.minPriority]) return false;
+  return true;
+}
+
+/**
+ * Filtra le task DENTRO ogni catena (non pre-filtra l'input dell'enumeratore).
+ * Una catena `A→B→C` con B che non passa il filtro diventa `[A, C]`,
+ * mantenendo struttura visibile delle parti rimanenti. Catene vuote vengono droppate.
+ */
+export function filterChains(chains: Chain[], f: TaskFiltersState): Chain[] {
+  return chains
+    .map((chain) => {
+      const kept = chain.tasks.filter((t) => passesFilters(t, f));
+      return { ...chain, tasks: kept };
+    })
+    .filter((c) => c.tasks.length > 0);
 }
