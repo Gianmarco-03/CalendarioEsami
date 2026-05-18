@@ -1,0 +1,1 @@
+ALTER TABLE exams ADD COLUMN icon TEXT NOT NULL DEFAULT 'book-open';

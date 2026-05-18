@@ -12,14 +12,16 @@ type SwitcherId = Exclude<AppSection, "settings">;
 interface Item { id: SwitcherId; label: string; Icon: typeof CalendarDays }
 const ITEMS: Item[] = [
   { id: "calendar", label: "Calendario", Icon: CalendarDays },
-  { id: "stats", label: "Statistiche", Icon: BarChart3 },
-  { id: "todo", label: "To-do", Icon: ListTodo },
+  { id: "stats",    label: "Statistiche", Icon: BarChart3 },
+  { id: "todo",     label: "To-do",       Icon: ListTodo },
 ];
 
 export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Partial<Record<SwitcherId, HTMLButtonElement | null>>>({});
-  const [pill, setPill] = useState<{ left: number; width: number; visible: boolean }>({ left: 0, width: 0, visible: false });
+  const [pill, setPill] = useState<{ left: number; width: number; visible: boolean }>({
+    left: 0, width: 0, visible: false,
+  });
 
   useLayoutEffect(() => {
     if (active === "settings") {
@@ -35,14 +37,14 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
   }, [active]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative grid grid-cols-3 gap-0 p-1 bg-app-soft rounded-xl mb-3"
-    >
+    <div ref={containerRef} className="section-switcher">
       <span
-        aria-hidden
-        className="absolute top-1 bottom-1 rounded-lg glass-panel shadow-sm transition-all duration-300 ease-out"
-        style={{ left: pill.left, width: pill.width, opacity: pill.visible ? 1 : 0 }}
+        className="pill"
+        style={{
+          left: pill.left,
+          width: pill.width,
+          opacity: pill.visible ? 1 : 0,
+        }}
       />
       {ITEMS.map(({ id, label, Icon }) => {
         const isActive = id === active;
@@ -52,12 +54,9 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
             ref={(el) => { btnRefs.current[id] = el; }}
             type="button"
             onClick={() => onChange(id)}
-            className={
-              "relative z-10 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors " +
-              (isActive ? "text-app-fg" : "text-app-muted hover:text-app-fg")
-            }
+            className={isActive ? "active" : ""}
           >
-            <Icon size={13} />
+            <Icon size={12} />
             <span>{label}</span>
           </button>
         );

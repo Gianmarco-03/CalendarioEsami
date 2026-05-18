@@ -9,17 +9,11 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   icon?: ComponentType<{ size?: number; className?: string }>;
+  kicker?: string;
   accent?: string;
   size?: Size;
   footer?: ReactNode;
 }
-
-const SIZE_CLASSES: Record<Size, string> = {
-  sm: "max-w-[360px]",
-  md: "max-w-[420px]",
-  lg: "max-w-[480px]",
-  xl: "max-w-[520px]",
-};
 
 export function Modal({
   open,
@@ -27,6 +21,7 @@ export function Modal({
   title,
   children,
   icon: Icon,
+  kicker,
   accent,
   size = "md",
   footer,
@@ -40,54 +35,61 @@ export function Modal({
 
   if (!open) return null;
 
-  const accentColor = accent ?? "var(--color-app-accent)";
+  const accentColor = accent ?? "var(--text)";
+  const iconBg = accent
+    ? `color-mix(in srgb, ${accent} 16%, transparent)`
+    : "rgba(255,255,255,0.05)";
+  const iconBorder = accent
+    ? `1px solid color-mix(in srgb, ${accent} 30%, transparent)`
+    : "1px solid var(--border)";
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/30 backdrop-blur-md flex items-center justify-center p-5"
+      className="modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={
-          "text-app-fg rounded-2xl w-full max-h-[88vh] overflow-hidden " +
-          "shadow-2xl glass-panel modal-panel-anim flex flex-col " +
-          SIZE_CLASSES[size]
-        }
+        className={`modal-panel size-${size}`}
+        style={{ ["--accent-color" as string]: accentColor } as React.CSSProperties}
       >
-        {/* Accent bar */}
-        <div
-          className="h-[4px] w-full shrink-0"
-          style={{ background: accentColor, transition: "background-color 200ms" }}
-        />
+        <div className="modal-accent" style={{ background: accentColor }} />
 
-        {/* Header */}
-        <div className="flex items-center gap-2.5 px-[18px] pt-3.5 pb-3 border-b border-app-border shrink-0">
+        <div className="modal-head">
           {Icon && (
-            <Icon
-              size={18}
-              className="shrink-0"
-            />
+            <div
+              style={{
+                width: 28, height: 28,
+                borderRadius: 8,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: accentColor,
+                background: iconBg,
+                border: iconBorder,
+                flexShrink: 0,
+              }}
+            >
+              <Icon size={14} />
+            </div>
           )}
-          <h3 className="text-[14.5px] font-bold leading-snug m-0 flex-1 min-w-0 truncate">
-            {title}
-          </h3>
+          <div className="head-text">
+            {kicker && <div className="head-kicker">{kicker}</div>}
+            <h2>{title}</h2>
+          </div>
           <button
+            type="button"
+            className="modal-close"
             onClick={onClose}
             aria-label="Chiudi"
-            className="text-app-muted p-1 rounded hover:bg-app-hover hover:text-app-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-focus-ring"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Body scrollabile */}
-        <div className="px-[18px] py-[18px] overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
+        <div className="modal-body">
           {children}
         </div>
 
-        {/* Footer sticky (opzionale) */}
         {footer && (
-          <div className="flex items-center gap-2 px-[18px] py-3 border-t border-app-border shrink-0">
+          <div className="modal-foot">
             {footer}
           </div>
         )}

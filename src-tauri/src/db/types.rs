@@ -55,6 +55,7 @@ pub struct EsameData {
     pub id: i64,
     pub name: String,
     pub color: String,
+    pub icon: String,
     pub passed: bool,
     pub default_study_minutes: i32,
     pub appelli: Vec<Appello>,
@@ -108,10 +109,14 @@ impl Exam {
 pub struct EsameInputData {
     pub name: String,
     pub color: String,
+    #[serde(default = "default_icon")]
+    pub icon: String,
     pub passed: bool,
     pub default_study_minutes: i32,
     pub appelli: Vec<String>,
 }
+
+fn default_icon() -> String { "book-open".to_string() }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -181,6 +186,15 @@ pub fn validate_color(color: &str) -> Result<(), String> {
     Ok(())
 }
 
+static ICON_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-z0-9][a-z0-9-]{0,63}$").unwrap());
+
+pub fn validate_icon(icon: &str) -> Result<(), String> {
+    if !ICON_RE.is_match(icon) {
+        return Err(format!("Icona non valida: {icon} (atteso slug kebab-case)"));
+    }
+    Ok(())
+}
+
 pub fn validate_date(s: &str) -> Result<(), String> {
     if !DATE_RE.is_match(s) {
         return Err(format!("Data non valida: {s} (atteso YYYY-MM-DD)"));
@@ -203,6 +217,7 @@ pub fn validate_input(input: &ExamInput) -> Result<String, String> {
     let base = input.base();
     let name = validate_name(&base.name)?;
     validate_color(&base.color)?;
+    validate_icon(&base.icon)?;
     if base.default_study_minutes < 0 || base.default_study_minutes > 1440 {
         return Err(format!(
             "Tempo di studio predefinito non valido: {} (0..1440)",
@@ -239,6 +254,17 @@ mod tests {
     }
 
     #[test]
+    fn icon_slug_format() {
+        assert!(validate_icon("book-open").is_ok());
+        assert!(validate_icon("brain").is_ok());
+        assert!(validate_icon("flask-conical").is_ok());
+        assert!(validate_icon("").is_err());
+        assert!(validate_icon("Book-Open").is_err());
+        assert!(validate_icon("book open").is_err());
+        assert!(validate_icon("-book").is_err());
+    }
+
+    #[test]
     fn color_format() {
         assert!(validate_color("#1A2B3C").is_ok());
         assert!(validate_color("#abcdef").is_ok());
@@ -266,6 +292,7 @@ mod tests {
             esame: EsameInputData {
                 name: "x".into(),
                 color: "#112233".into(),
+                icon: "book-open".into(),
                 passed: false,
                 default_study_minutes: 60,
                 appelli: vec![],
@@ -281,6 +308,7 @@ mod tests {
             esame: EsameInputData {
                 name: "x".into(),
                 color: "#112233".into(),
+                icon: "book-open".into(),
                 passed: false,
                 default_study_minutes: 60,
                 appelli: vec!["2026-01-15".into()],
@@ -295,6 +323,7 @@ mod tests {
         let i = ExamInput::Esame(EsameInputData {
             name: "placeholder".into(),
             color: "#112233".into(),
+            icon: "book-open".into(),
             passed: false,
             default_study_minutes: 60,
             appelli: vec![],
@@ -307,6 +336,7 @@ mod tests {
         let make = |dsm: i32| ExamInput::Esame(EsameInputData {
             name: "x".into(),
             color: "#112233".into(),
+            icon: "book-open".into(),
             passed: false,
             default_study_minutes: dsm,
             appelli: vec![],

@@ -6,7 +6,7 @@ import { iconFor } from "../exam-icons";
 
 interface DayCellProps {
   day: MonthGridDay;
-  exams: Exam[]; // active only (passed=false), as filtered by parent
+  exams: Exam[];
   onClick: (key: string) => void;
 }
 
@@ -86,17 +86,14 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
   const splitN = Math.min(activities.length, 4);
   const visibleBanners = banners.slice(0, 2);
   const overflowCount = banners.length - visibleBanners.length;
+  const isEmpty = activities.length === 0 && banners.length === 0;
+  const isWeekend = day.col >= 5;
 
   const classes = [
-    "cell-redesign",
-    "lift-hover",
-    "focus-visible:outline-2",
-    "focus-visible:outline-app-muted",
-    "focus-visible:outline-offset-[-2px]",
+    "cell",
     day.isToday ? "today" : "",
-    activities.length === 0 && banners.length === 0 ? "empty" : "",
-    edges.start ? "proj-start" : "",
-    edges.end ? "proj-end" : "",
+    isEmpty ? "empty" : "",
+    isWeekend ? "weekend" : "",
   ].filter(Boolean).join(" ");
 
   const cellStyle: React.CSSProperties = {};
@@ -110,17 +107,22 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
       className={classes}
       style={cellStyle}
     >
+      <div className="cell-head">
+        {day.isToday && <span className="oggi">OGGI</span>}
+        <span className="day-num">{day.day}</span>
+      </div>
+
       {(visibleBanners.length > 0 || overflowCount > 0) && (
         <div className="banners">
           {visibleBanners.map((b, i) => (
             <div
               key={`b-${i}-${b.examName}`}
               className="banner"
-              style={{ ["--banner-bg" as string]: b.color } as React.CSSProperties}
+              style={{ ["--bc" as string]: b.color } as React.CSSProperties}
               title={`Appello: ${b.examName}`}
             >
               <span className="banner-dot" />
-              <span>{b.examName}</span>
+              <span className="banner-name">{b.examName}</span>
             </div>
           ))}
           {overflowCount > 0 && (
@@ -147,7 +149,8 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
         </div>
       )}
 
-      <span className="cell-num">{day.day}</span>
+      {edges.start && <span className="proj-stripe-l" />}
+      {edges.end && <span className="proj-stripe-r" />}
     </button>
   );
 }

@@ -23,37 +23,37 @@ export function Calendar({ onDayClick }: CalendarProps) {
 
   const totalCells = grid.leadingBlanks + grid.days.length;
   const weeks = Math.ceil(totalCells / 7);
+  const trailingBlanks = weeks * 7 - totalCells;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0">
-        <CalendarHeader
-          year={grid.year}
-          month={grid.month}
-          onPrev={prev}
-          onNext={next}
-          onToday={today}
-        />
-        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-          {WEEKDAYS_IT_SHORT.map((d) => (
-            <div key={d} className="text-[10.5px] font-bold text-app-muted uppercase tracking-wide text-center">{d}</div>
-          ))}
-        </div>
+    <div className="cal-wrap">
+      <CalendarHeader
+        year={grid.year}
+        month={grid.month}
+        onPrev={prev}
+        onNext={next}
+        onToday={today}
+      />
+      <div className="weekdays">
+        {WEEKDAYS_IT_SHORT.map((d, i) => (
+          <div key={d} className={i >= 5 ? "weekend" : ""}>{d}</div>
+        ))}
       </div>
       <div
-        className="flex-1 min-h-0 grid grid-cols-7 gap-1.5"
+        className="cal-grid"
         style={{ gridTemplateRows: `repeat(${weeks}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: grid.leadingBlanks }).map((_, i) => (
-          <div key={`b${i}`} className="border border-transparent bg-transparent" />
+          <div key={`l${i}`} className="cell empty other-month" />
         ))}
         {grid.days.map((d) => (
           <DayCell key={d.key} day={d} exams={activeExams} onClick={onDayClick} />
         ))}
+        {Array.from({ length: trailingBlanks }).map((_, i) => (
+          <div key={`t${i}`} className="cell empty other-month" />
+        ))}
       </div>
-      <div className="shrink-0">
-        <Legend />
-      </div>
+      <Legend />
     </div>
   );
 }

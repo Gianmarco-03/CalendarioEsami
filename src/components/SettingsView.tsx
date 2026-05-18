@@ -11,7 +11,7 @@ interface SettingsViewProps {
 
 export function SettingsView({ tab }: SettingsViewProps) {
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+    <div className="settings-content">
       {tab === "personalization" && <PersonalizationPanel />}
       {tab === "notifications" && (
         <ErrorBoundary fallbackTitle="Errore in NotificationsSettings">
@@ -36,14 +36,12 @@ function Panel({
   title, description, children,
 }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-4 max-w-[640px]">
-      <header className="flex flex-col gap-1">
-        <h2 className="text-[18px] font-bold leading-tight">{title}</h2>
-        {description && (
-          <p className="text-[12.5px] text-app-muted leading-relaxed m-0">{description}</p>
-        )}
-      </header>
-      <div className="flex flex-col gap-3">{children}</div>
+    <div className="setting-card">
+      <h3>{title}</h3>
+      {description && <p>{description}</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -51,46 +49,47 @@ function Panel({
 function PersonalizationPanel() {
   const { theme, setTheme } = useTheme();
   return (
-    <Panel title="Personalizzazione" description="Aspetto dell'app.">
-      <div className="flex flex-col gap-2">
-        <div className="text-[11.5px] font-semibold text-app-muted uppercase tracking-wider">Tema</div>
-        <div className="grid grid-cols-2 gap-3 max-w-[420px]">
-          <button
-            type="button"
-            onClick={() => setTheme("light")}
-            className={
-              "flex flex-col items-center justify-center gap-2 px-3 py-5 " +
-              "rounded-[12px] text-[13px] font-semibold border transition-colors " +
-              (theme === "light"
-                ? "bg-app-accent text-app-accent-fg border-app-accent"
-                : "bg-app-card text-app-fg border-app-input-border hover:bg-app-hover")
-            }
-          >
-            <Sun size={24} /> Chiaro
-          </button>
-          <button
-            type="button"
-            onClick={() => setTheme("dark")}
-            className={
-              "flex flex-col items-center justify-center gap-2 px-3 py-5 " +
-              "rounded-[12px] text-[13px] font-semibold border transition-colors " +
-              (theme === "dark"
-                ? "bg-app-accent text-app-accent-fg border-app-accent"
-                : "bg-app-card text-app-fg border-app-input-border hover:bg-app-hover")
-            }
-          >
-            <Moon size={24} /> Scuro
-          </button>
+    <>
+      <Panel
+        title="Aspetto"
+        description="Nexo Note nasce con un'unica palette: nero pieno, accent bianco, colori-utente come firma. Il tema scuro è il default."
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="nx-label">Tema</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={"btn full" + (theme === "light" ? " primary" : "")}
+              style={{ flexDirection: "column", gap: 8, padding: "16px 12px" }}
+            >
+              <Sun size={20} /> Chiaro
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={"btn full" + (theme === "dark" ? " primary" : "")}
+              style={{ flexDirection: "column", gap: 8, padding: "16px 12px" }}
+            >
+              <Moon size={20} /> Scuro
+            </button>
+          </div>
         </div>
-      </div>
-    </Panel>
+      </Panel>
+    </>
   );
 }
 
 function ProfilePanel() {
   return (
     <Panel title="Profilo utente" description="In arrivo.">
-      <p className="text-[12.5px] text-app-muted leading-relaxed m-0">
+      <p style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        color: "var(--ink-80)",
+        lineHeight: 1.6,
+        margin: 0,
+      }}>
         Nome, avatar, obiettivi di studio settimanali e sincronizzazione locale tra dispositivi
         arriveranno in una versione successiva.
       </p>

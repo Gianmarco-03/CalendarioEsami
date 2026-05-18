@@ -33,14 +33,18 @@ export function ExamRow({ exam, onEdit, selected, onSelect }: ExamRowProps) {
   const Icon = iconFor(exam.icon);
 
   const classes = [
-    "exam-row-redesign",
-    "lift-hover",
+    "exam-row",
     exam.passed ? "passed" : "",
     selected ? "selected" : "",
-    onSelect ? "selectable" : "",
   ].filter(Boolean).join(" ");
 
-  const handleRowClick = onSelect ? () => onSelect() : undefined;
+  const handleRowClick: React.MouseEventHandler<HTMLDivElement> | undefined = onSelect
+    ? (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("button") || target.closest("input")) return;
+        onSelect();
+      }
+    : undefined;
 
   return (
     <div
@@ -50,29 +54,28 @@ export function ExamRow({ exam, onEdit, selected, onSelect }: ExamRowProps) {
       role={onSelect ? "button" : undefined}
       aria-pressed={onSelect ? selected : undefined}
     >
-      <span className="exam-row-redesign-stripe" />
-      <Icon className="exam-row-redesign-icon" size={14} />
-      <span className="exam-row-redesign-name">{exam.name}</span>
-      <span className="exam-row-redesign-meta">{metaText(exam, exams, strategy)}</span>
-      <label
-        className="flex items-center cursor-pointer shrink-0"
-        title={exam.kind === "progetto" ? "Segna come completato" : "Segna come superato"}
+      <span className="exam-row-stripe" />
+      <span className="exam-row-icon">
+        <Icon size={12} strokeWidth={1.75} />
+      </span>
+      <span className="exam-row-name">{exam.name}</span>
+      <span className="exam-row-meta">{metaText(exam, exams, strategy)}</span>
+      <input
+        type="checkbox"
+        className="exam-row-checkbox"
+        checked={exam.passed}
+        onChange={(e) => void setPassed(exam.id, e.target.checked)}
         onClick={(e) => e.stopPropagation()}
-      >
-        <input
-          type="checkbox"
-          checked={exam.passed}
-          onChange={(e) => void setPassed(exam.id, e.target.checked)}
-          className="w-[15px] h-[15px] cursor-pointer accent-[#2f9e57]"
-        />
-      </label>
-      <div className="exam-row-redesign-actions">
+        title={exam.kind === "progetto" ? "Segna come completato" : "Segna come superato"}
+        aria-label={exam.kind === "progetto" ? "Completato" : "Superato"}
+      />
+      <div className="exam-row-actions">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEdit(exam.id); }}
           title="Modifica"
           aria-label="Modifica"
-        ><Pencil size={13} /></button>
+        ><Pencil size={12} /></button>
         <button
           type="button"
           title="Elimina"
@@ -81,7 +84,7 @@ export function ExamRow({ exam, onEdit, selected, onSelect }: ExamRowProps) {
             e.stopPropagation();
             if (confirm(`Eliminare "${exam.name}"?`)) void remove(exam.id);
           }}
-        ><Trash2 size={13} /></button>
+        ><Trash2 size={12} /></button>
       </div>
     </div>
   );

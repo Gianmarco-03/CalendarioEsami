@@ -1,6 +1,8 @@
 import { useExams } from "../state";
 import { ExamRow } from "./ExamRow";
-import { Plus, Upload, Search, Settings as SettingsIcon, Globe, ArrowLeft } from "lucide-react";
+import {
+  Plus, Download, Search, Settings as SettingsIcon, Globe, ArrowLeft, NotebookPen,
+} from "lucide-react";
 import { SectionSwitcher, type AppSection } from "./SectionSwitcher";
 import { SETTINGS_TABS, type SettingsTab } from "./settings-tabs";
 
@@ -18,8 +20,7 @@ interface SidebarProps {
 }
 
 export function Sidebar(props: SidebarProps) {
-  const { section } = props;
-  if (section === "settings") {
+  if (props.section === "settings") {
     return <SettingsSidebar {...props} />;
   }
   return <ExamsSidebar {...props} />;
@@ -35,26 +36,31 @@ function ExamsSidebar({
   const statsMode = section === "stats" && !!onSelectExam;
 
   return (
-    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl glass-panel shadow-sm p-4 flex flex-col">
+    <aside className="sidebar">
+      <div className="brand">
+        <NotebookPen size={22} strokeWidth={1.6} />
+        <span className="brand-name">claendario</span>
+      </div>
+
       <SectionSwitcher active={section} onChange={onSectionChange} />
-      <h2 className="font-semibold text-[15px] mb-1">Esami e progetti</h2>
-      <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
-        Clicca un giorno per segnare lo studio. I <b>progetti</b> sono esami che durano più giorni.
-        Spunta la casella quando hai superato/completato.
+
+      <div className="sidebar-kicker">Esami · Progetti</div>
+      <p className="sidebar-hint">
+        Clicca un giorno per segnare lo studio. I <b>progetti</b> durano più giorni.
+        Spunta la casella quando hai superato.
       </p>
 
-      <div className="relative mb-3">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-app-muted pointer-events-none" />
+      <div className="search-wrap">
+        <Search size={13} className="search-icon" />
         <input
           type="text"
-          placeholder="Cerca…"
+          placeholder="Cerca esame…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="glass-input w-full pl-8 pr-3 py-1.5 text-[12.5px] rounded-lg focus:outline-2 focus:outline-app-muted"
         />
       </div>
 
-      <div>
+      <div className="exam-list">
         {statsMode && (
           <button
             type="button"
@@ -62,20 +68,28 @@ function ExamsSidebar({
             className={"globale-row" + (selectedExamId == null ? " selected" : "")}
             aria-pressed={selectedExamId == null}
           >
-            <Globe size={14} />
+            <Globe size={13} />
             <span className="globale-row-label">Globale</span>
             <span className="globale-row-meta">tutti</span>
           </button>
         )}
-        {loading && <div className="text-[12px] text-app-muted">Caricamento…</div>}
+
+        {loading && (
+          <div className="sidebar-hint" style={{ padding: "12px 8px" }}>Caricamento…</div>
+        )}
+
         {!loading && active.length === 0 && exams.length === 0 && (
-          <div className="text-[12px] text-app-muted py-1.5">
+          <div className="sidebar-hint" style={{ padding: "12px 8px" }}>
             Niente ancora. Aggiungi un esame o un progetto qui sotto.
           </div>
         )}
+
         {!loading && active.length === 0 && exams.length > 0 && searchQuery.trim() && (
-          <div className="text-[12px] text-app-muted py-1.5">Nessun esame attivo corrisponde alla ricerca.</div>
+          <div className="sidebar-hint" style={{ padding: "12px 8px" }}>
+            Nessun esame attivo corrisponde alla ricerca.
+          </div>
         )}
+
         {active.map((e) => (
           <ExamRow
             key={e.id}
@@ -85,52 +99,55 @@ function ExamsSidebar({
             onSelect={statsMode ? () => onSelectExam?.(selectedExamId === e.id ? null : e.id) : undefined}
           />
         ))}
+
+        {passed.length > 0 && (
+          <div className="completati">
+            <div className="completati-head">
+              <span>Completati</span>
+              <span className="count">{passed.length}</span>
+            </div>
+            {passed.map((e) => (
+              <ExamRow
+                key={e.id}
+                exam={e}
+                onEdit={onEdit}
+                selected={statsMode && selectedExamId === e.id}
+                onSelect={statsMode ? () => onSelectExam?.(selectedExamId === e.id ? null : e.id) : undefined}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="flex gap-2 mt-1">
-        <button
-          onClick={() => onAdd("esame")}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-app-accent text-app-accent-fg border border-app-accent hover:bg-app-accent-hover"
-        >
-          <Plus size={14} /> Esame
+      <div className="bottom-row">
+        <button type="button" className="btn primary full" onClick={() => onAdd("esame")}>
+          <Plus size={12} strokeWidth={2.2} /> Esame
         </button>
-        <button
-          onClick={() => onAdd("progetto")}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-app-card text-app-fg border border-app-input-border hover:bg-app-hover"
-        >
-          <Plus size={14} /> Progetto
+        <button type="button" className="btn full" onClick={() => onAdd("progetto")}>
+          <Plus size={12} strokeWidth={2.2} /> Progetto
         </button>
       </div>
+      <button type="button" className="import-btn" onClick={onImport}>
+        <Download size={11} /> Importa da artifact
+      </button>
 
-      <button
-        type="button"
-        onClick={onImport}
-        className="w-full mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold border border-app-input-border bg-app-card text-app-fg hover:bg-app-hover"
-      ><Upload size={13} /> Importa da artifact</button>
-
-      {passed.length > 0 && (
-        <div className="mt-4">
-          <div className="text-[11px] font-bold text-app-muted uppercase tracking-wide mb-2">Completati</div>
-          {passed.map((e) => (
-            <ExamRow
-              key={e.id}
-              exam={e}
-              onEdit={onEdit}
-              selected={statsMode && selectedExamId === e.id}
-              onSelect={statsMode ? () => onSelectExam?.(selectedExamId === e.id ? null : e.id) : undefined}
-            />
-          ))}
+      <div className="sidebar-footer">
+        <div className="user">
+          <div className="avatar">CL</div>
+          <div className="user-meta">
+            <b>locale</b><br/>
+            <span style={{ letterSpacing: "0.06em" }}>offline · ok</span>
+          </div>
         </div>
-      )}
-
-      <div className="mt-auto pt-3 flex justify-end">
         <button
           type="button"
+          className="settings-btn"
           onClick={onOpenSettings}
-          aria-label="Impostazioni"
           title="Impostazioni"
-          className="p-2 rounded-lg text-app-muted hover:bg-app-hover hover:text-app-fg transition-colors"
-        ><SettingsIcon size={16} /></button>
+          aria-label="Impostazioni"
+        >
+          <SettingsIcon size={15} />
+        </button>
       </div>
     </aside>
   );
@@ -140,24 +157,25 @@ function SettingsSidebar({
   onSectionChange, settingsTab, onSettingsTabChange,
 }: SidebarProps) {
   return (
-    <aside className="w-[290px] shrink-0 h-full overflow-y-auto rounded-2xl glass-panel shadow-sm p-4 flex flex-col">
+    <aside className="sidebar">
       <button
         type="button"
+        className="settings-back"
         onClick={() => onSectionChange("calendar")}
-        className="flex items-center gap-2 px-2 py-1.5 mb-3 rounded-lg text-[12.5px] font-medium text-app-muted hover:text-app-fg hover:bg-app-hover transition-colors self-start"
       >
-        <ArrowLeft size={14} /> Torna all'app
+        <ArrowLeft size={12} /> Torna all'app
       </button>
 
-      <h2 className="font-semibold text-[15px] mb-1 flex items-center gap-2">
-        <SettingsIcon size={15} />
-        Impostazioni
-      </h2>
-      <p className="text-[11.5px] text-app-muted leading-relaxed mb-3">
-        Configura aspetto, notifiche e comportamento dell'app.
+      <div className="brand" style={{ paddingTop: 0 }}>
+        <SettingsIcon size={18} />
+        <span className="brand-name" style={{ fontSize: 16 }}>Impostazioni</span>
+      </div>
+
+      <p className="sidebar-hint">
+        Aspetto, notifiche, comportamento. Tutto persiste localmente.
       </p>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="settings-nav">
         {SETTINGS_TABS.map(({ id, label, Icon }) => {
           const isActive = id === settingsTab;
           return (
@@ -165,15 +183,10 @@ function SettingsSidebar({
               key={id}
               type="button"
               onClick={() => onSettingsTabChange(id)}
-              className={
-                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors " +
-                (isActive
-                  ? "bg-app-accent text-app-accent-fg shadow-sm"
-                  : "text-app-fg hover:bg-app-hover")
-              }
+              className={isActive ? "active" : ""}
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon size={15} />
+              <Icon size={14} />
               <span>{label}</span>
             </button>
           );

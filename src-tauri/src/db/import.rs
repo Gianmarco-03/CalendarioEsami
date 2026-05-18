@@ -10,10 +10,14 @@ struct ArtifactRoot {
     exams: Vec<ArtifactExam>,
 }
 
+fn default_icon() -> String { "book-open".to_string() }
+
 #[derive(Deserialize)]
 struct ArtifactExam {
     name: String,
     color: String,
+    #[serde(default = "default_icon")]
+    icon: String,
     #[serde(rename = "type")]
     kind: String,
     #[serde(default)]
@@ -60,6 +64,7 @@ pub fn import_artifact_json(conn: &mut Connection, payload: &str) -> Result<Impo
         let base = EsameInputData {
             name: ae.name.clone(),
             color: ae.color.clone(),
+            icon: ae.icon.clone(),
             passed: ae.passed,
             default_study_minutes: ae.default_study_minutes,
             appelli,

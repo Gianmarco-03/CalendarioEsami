@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
+import { Globe } from "lucide-react";
+import type { Exam } from "./../types";
 import { useExams } from "../state";
 import { useSuggestedStrategy } from "../suggested-strategy";
 import { dailyTotals, type ExamFilter } from "../study-time";
 import { rangeDays } from "../study-time-format";
 import { ymd, parseYmd } from "../date";
+import { iconFor } from "../exam-icons";
 import { RangeSelector, resolveRange, type StatsRange } from "./stats/RangeSelector";
 import type { ChartMode } from "./stats/ChartModeToggle";
 import { KpiCards } from "./stats/KpiCards";
@@ -11,11 +14,13 @@ import { TodayQuickLog } from "./stats/TodayQuickLog";
 import { StudyChart, type DayPoint } from "./stats/StudyChart";
 import { YearHeatmap } from "./stats/YearHeatmap";
 import { PerExamBars } from "./stats/PerExamBars";
+import { isProgetto } from "../progetto";
 import "./stats/stats-chart.css";
 
 interface Props {
   onDayClick: (dayKey: string) => void;
   selectedExamId: number | null;
+  selectedExam: Exam | null;
 }
 
 const WEEKDAYS_SHORT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
@@ -33,7 +38,42 @@ function formatWeekLabel(mondayKey: string): string {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
 }
 
-export function StatsView({ onDayClick, selectedExamId }: Props) {
+function StatsHero({ exam }: { exam: Exam | null }) {
+  if (!exam) {
+    return (
+      <div className="stats-hero">
+        <div className="swatch global">
+          <Globe size={20} />
+        </div>
+        <div className="title-wrap">
+          <div className="kicker">Statistiche · vista globale</div>
+          <h1>Globale</h1>
+        </div>
+      </div>
+    );
+  }
+  const Icon = iconFor(exam.icon);
+  const kind = isProgetto(exam) ? "Statistiche · progetto" : "Statistiche · esame";
+  return (
+    <div className="stats-hero">
+      <div
+        className="swatch"
+        style={{ ["--hc" as string]: exam.color } as React.CSSProperties}
+      >
+        <Icon size={22} strokeWidth={1.6} />
+      </div>
+      <div
+        className="title-wrap"
+        style={{ ["--hc" as string]: exam.color } as React.CSSProperties}
+      >
+        <div className="kicker">{kind}</div>
+        <h1><span className="colored">{exam.name}</span></h1>
+      </div>
+    </div>
+  );
+}
+
+export function StatsView({ onDayClick, selectedExamId, selectedExam }: Props) {
   const { exams } = useExams();
   const strategy = useSuggestedStrategy();
   const today = ymd(new Date());
@@ -46,7 +86,6 @@ export function StatsView({ onDayClick, selectedExamId }: Props) {
       : (e) => e.id === selectedExamId,
     [selectedExamId]
   );
-  const selectedExam = selectedExamId != null ? exams.find((e) => e.id === selectedExamId) : undefined;
   const accentColor = selectedExam?.color;
 
   const { start, end } = useMemo(() => {
@@ -117,7 +156,9 @@ export function StatsView({ onDayClick, selectedExamId }: Props) {
   }, [exams, strategy, start, end, range, today, filter]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+    <div className="stats-scroll">
+      <StatsHero exam={selectedExam} />
+
       <div className="stats-toolbar">
         <RangeSelector value={range} onChange={setRange} />
       </div>

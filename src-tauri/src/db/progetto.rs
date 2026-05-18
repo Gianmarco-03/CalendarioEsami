@@ -41,6 +41,7 @@ mod tests {
                 id: 1,
                 name: "X".into(),
                 color: "#000000".into(),
+                icon: "book-open".into(),
                 passed: false,
                 default_study_minutes: 60,
                 appelli: vec![],
