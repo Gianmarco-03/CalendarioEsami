@@ -206,12 +206,13 @@ function Toggle({
       }}
       className={
         "relative inline-flex items-center w-10 h-5 rounded-full transition-colors shrink-0 p-0.5 " +
-        (checked ? "bg-app-accent" : "bg-app-input-border")
+        (checked ? "bg-zinc-800" : "bg-zinc-200")
       }
     >
       <span
         className={
-          "block w-4 h-4 rounded-full bg-white shadow-sm transition-transform " +
+          "block w-4 h-4 rounded-full shadow-sm transition-transform " +
+          (checked ? "bg-white" : "bg-zinc-600") + " " +
           (checked ? "translate-x-5" : "translate-x-0")
         }
       />
