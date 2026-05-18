@@ -34,3 +34,28 @@ export function daysUntilDue(t: Task, today: string): number | null {
   const b = new Date(t.dueDate).getTime();
   return Math.round((b - a) / 86_400_000);
 }
+
+/** Task con `dueDate === dayKey`. Per default include solo quelle non-done. */
+export function tasksDueOn(tasks: Task[], dayKey: string, opts: { includeDone?: boolean } = {}): Task[] {
+  return tasks.filter((t) => t.dueDate === dayKey && (opts.includeDone || !t.done));
+}
+
+/** Mappa `dueDate → Task[]` per scan efficiente del Calendar (1 pass). */
+export function tasksByDueDate(tasks: Task[], opts: { includeDone?: boolean } = {}): Map<string, Task[]> {
+  const m = new Map<string, Task[]>();
+  for (const t of tasks) {
+    if (!t.dueDate) continue;
+    if (!opts.includeDone && t.done) continue;
+    const arr = m.get(t.dueDate) ?? [];
+    arr.push(t);
+    m.set(t.dueDate, arr);
+  }
+  return m;
+}
+
+/** Conta le task che soddisfano il predicato. */
+export function countTasks(tasks: Task[], pred: (t: Task) => boolean): number {
+  let n = 0;
+  for (const t of tasks) if (pred(t)) n++;
+  return n;
+}

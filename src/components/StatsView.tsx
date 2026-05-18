@@ -14,6 +14,7 @@ import { TodayQuickLog } from "./stats/TodayQuickLog";
 import { StudyChart, type DayPoint } from "./stats/StudyChart";
 import { YearHeatmap } from "./stats/YearHeatmap";
 import { PerExamBars } from "./stats/PerExamBars";
+import { TaskMetrics } from "./stats/TaskMetrics";
 import { isProgetto } from "../progetto";
 import "./stats/stats-chart.css";
 
@@ -194,6 +195,13 @@ export function StatsView({ onDayClick, selectedExamId, selectedExam }: Props) {
         onDayClick={onDayClick}
         filter={filter}
         accentColor={accentColor}
+      />
+
+      <TaskMetrics
+        exams={exams}
+        rangeStart={start}
+        rangeEnd={end}
+        selectedExamId={selectedExamId}
       />
 
       {selectedExamId == null && (

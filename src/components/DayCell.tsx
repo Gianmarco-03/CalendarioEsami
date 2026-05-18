@@ -1,4 +1,5 @@
 import type { Exam } from "../types";
+import type { Task } from "../task-types";
 import type { MonthGridDay } from "../date";
 import { inRange } from "../date";
 import { isProgetto } from "../progetto";
@@ -7,6 +8,8 @@ import { iconFor } from "../exam-icons";
 interface DayCellProps {
   day: MonthGridDay;
   exams: Exam[];
+  /** Task con dueDate sul giorno, già filtrate (di solito solo non-done). */
+  tasksDue?: Task[];
   onClick: (key: string) => void;
 }
 
@@ -78,15 +81,21 @@ function computeProjectEdges(dayKey: string, exams: Exam[]): ProjectEdges {
   return { start, end, startColor, endColor };
 }
 
-export function DayCell({ day, exams, onClick }: DayCellProps) {
+export function DayCell({ day, exams, tasksDue = [], onClick }: DayCellProps) {
   const activities = buildActivities(day.key, exams);
   const banners = buildBanners(day.key, exams);
   const edges = computeProjectEdges(day.key, exams);
+  const taskCount = tasksDue.length;
+  const taskTitle = taskCount > 0
+    ? taskCount === 1
+      ? `Da fare: ${tasksDue[0].title}`
+      : `${taskCount} task da fare`
+    : "";
 
   const splitN = Math.min(activities.length, 4);
   const visibleBanners = banners.slice(0, 2);
   const overflowCount = banners.length - visibleBanners.length;
-  const isEmpty = activities.length === 0 && banners.length === 0;
+  const isEmpty = activities.length === 0 && banners.length === 0 && taskCount === 0;
   const isWeekend = day.col >= 5;
 
   const classes = [
@@ -110,6 +119,12 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
       <div className="cell-head">
         {day.isToday && <span className="oggi">OGGI</span>}
         <span className="day-num">{day.day}</span>
+        {taskCount > 0 && (
+          <span className="task-flag" title={taskTitle} aria-label={taskTitle}>
+            {taskCount > 1 && <span className="task-flag-count">{taskCount}</span>}
+            <span className="task-flag-dot" />
+          </span>
+        )}
       </div>
 
       {(visibleBanners.length > 0 || overflowCount > 0) && (

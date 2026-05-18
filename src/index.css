@@ -870,6 +870,33 @@ body::after {
     color: var(--ink-50);
   }
 
+  /* ── Task flag (badge per task con dueDate sul giorno) ───────────── */
+  .cell .task-flag {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    line-height: 1;
+  }
+  .cell .task-flag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--text);
+  }
+  .cell .task-flag-count {
+    padding: 1px 4px;
+    background: var(--brand-soft);
+    border: 1px solid var(--brand-edge);
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .cell.empty .task-flag { display: none; }
+
   /* ── Banners ────────────────────────────────────────────────────── */
   .banners {
     display: flex;
@@ -1370,6 +1397,67 @@ body::after {
     font-size: 10px;
     color: var(--muted);
     white-space: nowrap;
+  }
+
+  /* ── Task row dentro DayModal (sezione "Da fare") ─────────────── */
+  .day-task-row {
+    display: grid;
+    grid-template-columns: 16px 2px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    background: var(--panel-overlay);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text);
+    transition: opacity var(--motion-fast);
+  }
+  .day-task-row.done { opacity: 0.55; }
+  .day-task-row .stripe {
+    width: 2px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--ec, var(--ink-50));
+  }
+  .day-task-row .day-task-title {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: inherit;
+    font-size: inherit;
+  }
+  .day-task-row .day-task-title:hover { color: var(--text); text-decoration: underline; }
+  .day-task-row.done .day-task-title { text-decoration: line-through; color: var(--muted); }
+  .day-task-row .day-task-meta {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    color: var(--muted);
+    font-size: 10px;
+  }
+  .day-task-row .day-task-meta .prio-pill {
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+  }
+  .day-task-row .day-task-meta .prio-pill.high { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .day-task-row .day-task-meta .prio-pill.urgent { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-edge); }
+  .day-task-row .day-task-check {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--text);
+    margin: 0;
   }
 
   .checkbox-pill {

@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useExams } from "../state";
+import { useTasks } from "../tasks-state";
 import { inRange, parseYmd, ymd } from "../date";
 import { Modal } from "./Modal";
 import { ModalButton } from "./ModalButton";
 import { Clock, Calendar } from "lucide-react";
 import { useSuggestedStrategy } from "../suggested-strategy";
 import { isProgetto } from "../progetto";
+import { tasksDueOn } from "../task-domain";
+import { TaskModal, type ModalState as TaskModalState } from "./todo/TaskModal";
 
 interface DayModalProps {
   open: boolean;
@@ -20,8 +24,13 @@ interface InfoLine {
 
 export function DayModal({ open, dayKey, onClose }: DayModalProps) {
   const { exams, toggleStudyDay, setStudyDayMinutes } = useExams();
+  const { tasks, setDone: setTaskDone } = useTasks();
   const strategy = useSuggestedStrategy();
+  const [taskModal, setTaskModal] = useState<TaskModalState>(null);
   if (!dayKey) return null;
+
+  const dueTasks = tasksDueOn(tasks, dayKey, { includeDone: true });
+  const examById = (id: number | null) => id != null ? exams.find((e) => e.id === id) ?? null : null;
 
   const date = parseYmd(dayKey);
   const titleRaw = date.toLocaleDateString("it-IT", {
@@ -152,6 +161,54 @@ export function DayModal({ open, dayKey, onClose }: DayModalProps) {
           </div>
         </>
       )}
+
+      {dueTasks.length > 0 && (
+        <>
+          <div className="nx-label" style={{ marginTop: 10 }}>
+            Da fare
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {dueTasks.map((t) => {
+              const exam = examById(t.examId);
+              const color = exam?.color ?? "var(--ink-50)";
+              const isOpen = !t.done;
+              const checklistDone = t.checklist.filter((c) => c.done).length;
+              return (
+                <div
+                  key={t.id}
+                  className={`day-task-row${t.done ? " done" : ""}`}
+                  style={{ ["--ec" as string]: color } as React.CSSProperties}
+                >
+                  <input
+                    type="checkbox"
+                    className="day-task-check"
+                    checked={t.done}
+                    onChange={() => void setTaskDone(t.id, !t.done)}
+                    aria-label={t.done ? `Riapri ${t.title}` : `Segna ${t.title} come fatta`}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="stripe" />
+                  <button
+                    type="button"
+                    className="day-task-title"
+                    onClick={() => setTaskModal({ mode: "edit", id: t.id })}
+                  >
+                    {t.title}
+                  </button>
+                  <div className="day-task-meta">
+                    {exam && <span>{exam.name}</span>}
+                    {t.checklist.length > 0 && <span>▢ {checklistDone}/{t.checklist.length}</span>}
+                    {isOpen && t.priority === "high" && <span className="prio-pill high">alta</span>}
+                    {isOpen && t.priority === "urgent" && <span className="prio-pill urgent">urgente</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <TaskModal state={taskModal} onClose={() => setTaskModal(null)} />
     </Modal>
   );
 }
