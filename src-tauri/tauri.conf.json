@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Calendario Appelli e Studio",
         "width": 1100,
         "height": 760,
@@ -32,6 +33,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "assets/streak.wav"
     ]
   }
 }
