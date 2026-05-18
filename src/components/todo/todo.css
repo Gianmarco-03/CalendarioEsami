@@ -97,6 +97,18 @@
   gap: 12px;
   align-items: stretch;
   --marker-color: var(--ink-50);
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast), outline-color var(--motion-fast);
+  outline: 2px dashed transparent;
+  outline-offset: 2px;
+  cursor: grab;
+}
+.chain-node:active { cursor: grabbing; }
+
+/* Drop target durante drag-and-drop linking: bordo tratteggiato accent */
+.chain-node.drop-target {
+  outline-color: var(--brand);
+  background: var(--brand-soft);
 }
 
 .chain-node-rail {
@@ -188,6 +200,30 @@
   flex-shrink: 0;
 }
 
+/* Pulsante "+" affianco al titolo: crea nuova task come successiva */
+.chain-node-add-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0 2px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+.chain-node-add-next:hover {
+  color: var(--text);
+  border-color: var(--text);
+  background: var(--hover);
+}
+.chain-node.done .chain-node-add-next { visibility: hidden; }
+
 /* Checklist inline, ogni item ha bullet + checkbox cliccabile */
 .chain-checklist {
   list-style: none;
@@ -272,14 +308,34 @@
 .todo-empty h2 { font-family: var(--font-display); color: var(--text); font-size: 18px; margin: 0; }
 .todo-empty p { max-width: 340px; text-align: center; font-size: 12px; line-height: 1.55; margin: 0; }
 
-/* Link picker (in modal) */
+/* Hint nel modal quando si crea una task linkata come successore */
+.task-modal-link-hint {
+  padding: 8px 12px;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-edge);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.task-modal-link-hint strong { color: var(--text); }
+
+/* Link picker (in modal) — read + remove only.
+   L'aggiunta dei link avviene via drag-and-drop o tramite "+" sulla card. */
 .link-picker {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 10px;
   font-family: var(--font-mono); font-size: 11px;
 }
-.link-picker h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
-.link-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-overlay); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.link-picker h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 4px 0; }
+.link-picker-empty {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 4px 0;
+}
+.link-picker-empty strong { color: var(--text); }
+.link-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-overlay); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 4px; }
 .link-row .name { flex: 1; color: var(--text); }
 .link-row button.remove { background: transparent; border: none; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 12px; }
 .link-row button.remove:hover { color: var(--danger); }
-.link-picker select { width: 100%; background: var(--panel-overlay); border: 1px solid var(--border-strong); color: var(--text); border-radius: var(--radius-sm); padding: 4px 8px; font-family: inherit; }

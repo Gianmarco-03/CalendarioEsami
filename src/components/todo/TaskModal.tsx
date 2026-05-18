@@ -9,6 +9,7 @@ import { useExams } from "../../state";
 
 export type ModalState =
   | { mode: "create" }
+  | { mode: "create"; linkAsSuccessorOf: number }
   | { mode: "edit"; id: number }
   | null;
 
@@ -22,8 +23,12 @@ const EMPTY_FORM: TaskInput = {
 };
 
 export function TaskModal({ state, onClose }: Props) {
-  const { tasks, create, update, remove } = useTasks();
+  const { tasks, create, update, remove, addLink } = useTasks();
   const { exams } = useExams();
+
+  const linkParent: Task | null = state?.mode === "create" && "linkAsSuccessorOf" in state
+    ? tasks.find((t) => t.id === state.linkAsSuccessorOf) ?? null
+    : null;
 
   const editing: Task | null = state?.mode === "edit"
     ? tasks.find((t) => t.id === state.id) ?? null
@@ -44,17 +49,26 @@ export function TaskModal({ state, onClose }: Props) {
         })),
       });
     } else if (state?.mode === "create") {
-      setForm(EMPTY_FORM);
+      // Eredita l'examId dal parent quando si crea una successiva linkata
+      // (semplifica la compatibilità link: stesso esame oppure entrambe libere).
+      setForm({ ...EMPTY_FORM, examId: linkParent?.examId ?? null });
     }
-  }, [state, editing]);
+  }, [state, editing, linkParent]);
 
   if (state == null) return null;
 
   const submit = async () => {
-    const ok = state.mode === "edit"
-      ? await update(state.id, form)
-      : await create(form);
-    if (ok) onClose();
+    if (state.mode === "edit") {
+      const ok = await update(state.id, form);
+      if (ok) onClose();
+      return;
+    }
+    const created = await create(form);
+    if (!created) return;
+    if ("linkAsSuccessorOf" in state) {
+      await addLink(state.linkAsSuccessorOf, created.id);
+    }
+    onClose();
   };
 
   const onDelete = async () => {
@@ -108,6 +122,11 @@ export function TaskModal({ state, onClose }: Props) {
       footer={footer}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {linkParent && (
+          <div className="task-modal-link-hint">
+            Sarà aggiunta come <strong>successiva</strong> di "{linkParent.title}"
+          </div>
+        )}
         <label>
           <div className="nx-label">Titolo</div>
           <input

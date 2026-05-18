@@ -64,6 +64,7 @@ export function TodoView() {
               key={c.pathKey}
               chain={c}
               onEditTask={(id) => setModalState({ mode: "edit", id })}
+              onAddSuccessor={(predId) => setModalState({ mode: "create", linkAsSuccessorOf: predId })}
             />
           ))}
         </div>

@@ -573,20 +573,56 @@ Riusa `Modal` esistente. Sezioni:
 7. **Link**: `LinkPicker` per predecessori e successori
 8. Footer: Salva / Elimina (in edit)
 
-### 8.5 `components/todo/LinkPicker.tsx`
+### 8.5 Aggiunta e rimozione dei link
 
-Per ciascuna direzione (predecessori / successori):
-- Lista esistente con bottone `×` per unlink.
-- Combobox per aggiungere: lista filtrata di task disponibili (escluse self, già linkate, incompatibili per esame, ciclo-creanti — calcolo client via `dag-validator` + `link-validator`).
+**Aggiungere un link è fatto da due interazioni dirette nella vista**, non via select nel modal:
 
-### 8.6 `components/todo/TaskFilters.tsx`
+1. **Drag-and-drop**: trascini una task `B` sopra una task `A` per dichiarare `A → B`. Dopo il drop, `B` appare come figlio di `A` nella catena (la card è draggable; ogni `ChainNode` è anche drop target). Durante il drag, una variabile modulo (`currentDraggedId`) consente di pre-validare in `onDragOver` via `wouldCreateCycle` + `isLinkExamCompatible`: se il drop creerebbe ciclo o sarebbe incompatibile per esame, `preventDefault` non viene chiamato → il browser nega il drop e l'outline accent non si attiva. Backend Rust resta arbiter finale.
+2. **Pulsante "+"** affianco al titolo di ogni task: apre `TaskModal` in modalità `{ mode: "create", linkAsSuccessorOf: parentId }`. Su salva, dopo `create()` viene invocato automaticamente `addLink(parentId, newTaskId)`. Il form eredita l'`examId` del parent (per garantire la compatibilità del link).
+
+**Rimuovere un link**: nel `TaskModal` (apri la task in edit) il componente `LinkPicker` mostra le sezioni "Da fare PRIMA" e "Da fare DOPO" con bottone `×` per ciascun link. Niente combobox di aggiunta nel modal — l'aggiunta avviene solo via drag-and-drop o pulsante "+".
+
+```typescript
+// ChainRow.tsx — eventi D&D sul ChainNode
+const isValidDrop = (draggedId: number): boolean => {
+  if (draggedId === task.id) return false;
+  if (task.successorIds.includes(draggedId)) return false;
+  const dragged = tasks.find((t) => t.id === draggedId);
+  if (!dragged) return false;
+  if (!isLinkExamCompatible(task, dragged)) return false;
+  if (wouldCreateCycle(tasks, task.id, draggedId)) return false;
+  return true;
+};
+```
+
+**Auto-removal degli orfani**: una task con almeno un predecessore non è più root → smette di apparire come catena singleton. Se invece la task ha già altri predecessori, resta visibile nelle catene di quei predecessori (convergenza). Comportamento gratis dall'algoritmo `maximalPathEnumerator`.
+
+### 8.6 `components/todo/LinkPicker.tsx` (read + remove only)
+
+Componente nel `TaskModal` per mostrare i link correnti della task in edit e permettere la rimozione (`×`). Niente dropdown di aggiunta (delegato a D&D + "+"). In modalità "create" mostra un hint che spiega come aggiungere link.
+
+```tsx
+export function LinkPicker({ task }: { task: Task | null }) {
+  const { tasks, removeLink } = useTasks();
+  if (!task) return <EmptyHint />;             // create mode
+  if (preds.length === 0 && succs.length === 0) return <NoLinksHint />;
+  return (
+    <>
+      {preds.length > 0 && <Direction title="Da fare PRIMA" items={preds} onRemove={…} />}
+      {succs.length > 0 && <Direction title="Da fare DOPO"  items={succs} onRemove={…} />}
+    </>
+  );
+}
+```
+
+### 8.7 `components/todo/TaskFilters.tsx`
 
 Pill segmentate stile `SectionSwitcher`:
 - `[ Tutti / Solo non fatti ]`
 - Select esame (Tutti / esame X / esame Y / Liberi)
 - `[ Tutte le priorità / Da normal in su / Solo high+urgent ]`
 
-### 8.7 Empty state
+### 8.8 Empty state
 
 Stesso pattern dell'attuale `TodoView` placeholder:
 ```

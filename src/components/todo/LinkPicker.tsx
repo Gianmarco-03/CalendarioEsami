@@ -1,22 +1,25 @@
-import { useState } from "react";
 import type { Task } from "../../task-types";
 import { useTasks } from "../../tasks-state";
-import { wouldCreateCycle } from "../../dag-validator";
-import { isLinkExamCompatible } from "../../link-validator";
 
 interface Props {
   /** Task corrente (in edit). null in create mode → picker disabilitato. */
   task: Task | null;
 }
 
+/**
+ * Vista dei link esistenti di una task. Permette solo la RIMOZIONE.
+ * L'aggiunta di nuovi link avviene via drag-and-drop sulla catena o
+ * via pulsante "+" affianco al titolo della task (crea successore).
+ */
 export function LinkPicker({ task }: Props) {
-  const { tasks, addLink, removeLink } = useTasks();
+  const { tasks, removeLink } = useTasks();
   if (!task) {
     return (
       <div className="link-picker">
         <h4>Predecessori / successori</h4>
-        <div style={{ color: "var(--muted)", fontSize: 11 }}>
-          Salva la task per poterle aggiungere link.
+        <div className="link-picker-empty">
+          Salva la task: i link si creano trascinando le task sulla catena
+          (o tramite "+" affianco al titolo).
         </div>
       </div>
     );
@@ -29,32 +32,34 @@ export function LinkPicker({ task }: Props) {
     .map((id) => tasks.find((t) => t.id === id))
     .filter((t): t is Task => t != null);
 
+  if (preds.length === 0 && succs.length === 0) {
+    return (
+      <div className="link-picker">
+        <h4>Link</h4>
+        <div className="link-picker-empty">
+          Nessun link. Trascina un'altra task <strong>sopra</strong> questa per dichiarare
+          che la precede; oppure usa il "+" affianco al titolo per crearne una già linkata.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="link-picker">
-      <LinkDirection
-        title="Predecessori (fai PRIMA queste)"
-        current={preds}
-        candidates={tasks.filter((t) =>
-          t.id !== task.id
-          && !task.predecessorIds.includes(t.id)
-          && isLinkExamCompatible(t, task)
-          && !wouldCreateCycle(tasks, t.id, task.id)
-        )}
-        onAdd={(predId) => addLink(predId, task.id)}
-        onRemove={(predId) => removeLink(predId, task.id)}
-      />
-      <LinkDirection
-        title="Successori (fai DOPO queste)"
-        current={succs}
-        candidates={tasks.filter((t) =>
-          t.id !== task.id
-          && !task.successorIds.includes(t.id)
-          && isLinkExamCompatible(task, t)
-          && !wouldCreateCycle(tasks, task.id, t.id)
-        )}
-        onAdd={(succId) => addLink(task.id, succId)}
-        onRemove={(succId) => removeLink(task.id, succId)}
-      />
+      {preds.length > 0 && (
+        <LinkDirection
+          title="Da fare PRIMA"
+          current={preds}
+          onRemove={(predId) => removeLink(predId, task.id)}
+        />
+      )}
+      {succs.length > 0 && (
+        <LinkDirection
+          title="Da fare DOPO"
+          current={succs}
+          onRemove={(succId) => removeLink(task.id, succId)}
+        />
+      )}
     </div>
   );
 }
@@ -62,40 +67,26 @@ export function LinkPicker({ task }: Props) {
 interface DirProps {
   title: string;
   current: Task[];
-  candidates: Task[];
-  onAdd: (id: number) => Promise<boolean>;
   onRemove: (id: number) => Promise<boolean>;
 }
 
-function LinkDirection({ title, current, candidates, onAdd, onRemove }: DirProps) {
-  const [selected, setSelected] = useState<string>("");
+function LinkDirection({ title, current, onRemove }: DirProps) {
   return (
     <div>
       <h4>{title}</h4>
-      {current.length === 0 && (
-        <div style={{ color: "var(--muted)", fontSize: 11, padding: "4px 0" }}>Nessuno</div>
-      )}
       {current.map((t) => (
         <div key={t.id} className="link-row">
           <span className="name">{t.title}</span>
-          <button type="button" className="remove" onClick={() => void onRemove(t.id)} aria-label={`Rimuovi link ${t.title}`}>×</button>
+          <button
+            type="button"
+            className="remove"
+            onClick={() => void onRemove(t.id)}
+            aria-label={`Rimuovi link ${t.title}`}
+          >
+            ×
+          </button>
         </div>
       ))}
-      {candidates.length > 0 && (
-        <select
-          value={selected}
-          onChange={(e) => {
-            const id = Number(e.target.value);
-            if (!id) return;
-            void onAdd(id).then((ok) => { if (ok) setSelected(""); });
-          }}
-        >
-          <option value="">+ Aggiungi…</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>{c.title}</option>
-          ))}
-        </select>
-      )}
     </div>
   );
 }

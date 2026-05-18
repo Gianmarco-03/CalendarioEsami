@@ -1,14 +1,22 @@
+import { useState, type DragEvent } from "react";
+import { Plus } from "lucide-react";
 import type { Chain, Task } from "../../task-types";
 import { nextActionable } from "../../task-domain";
 import { useTasks } from "../../tasks-state";
 import { useExams } from "../../state";
+import { wouldCreateCycle } from "../../dag-validator";
+import { isLinkExamCompatible } from "../../link-validator";
+
+// Module-level transient drag state (singolo drag attivo a volta — più semplice di un Context).
+let currentDraggedId: number | null = null;
 
 interface Props {
   chain: Chain;
   onEditTask: (id: number) => void;
+  onAddSuccessor: (predId: number) => void;
 }
 
-export function ChainRow({ chain, onEditTask }: Props) {
+export function ChainRow({ chain, onEditTask, onAddSuccessor }: Props) {
   const next = nextActionable(chain.tasks);
   const nextId = next?.id ?? null;
   return (
@@ -20,6 +28,7 @@ export function ChainRow({ chain, onEditTask }: Props) {
           isNextActionable={t.id === nextId}
           isLast={i === chain.tasks.length - 1}
           onEdit={() => onEditTask(t.id)}
+          onAddSuccessor={() => onAddSuccessor(t.id)}
         />
       ))}
     </div>
@@ -31,23 +40,77 @@ interface ChainNodeProps {
   isNextActionable: boolean;
   isLast: boolean;
   onEdit: () => void;
+  onAddSuccessor: () => void;
 }
 
-function ChainNode({ task, isNextActionable, isLast, onEdit }: ChainNodeProps) {
-  const { setDone, setChecklistItemDone } = useTasks();
+function ChainNode({ task, isNextActionable, isLast, onEdit, onAddSuccessor }: ChainNodeProps) {
+  const { tasks, setDone, setChecklistItemDone, addLink } = useTasks();
   const { exams } = useExams();
+  const [isDropTarget, setIsDropTarget] = useState(false);
+
   const exam = task.examId != null ? exams.find((e) => e.id === task.examId) ?? null : null;
   const markerColor = exam?.color ?? "var(--ink-50)";
+
+  /** Validità del drop "dragged → target=task" (target diventa predecessore). */
+  const isValidDrop = (draggedId: number): boolean => {
+    if (draggedId === task.id) return false;
+    if (task.successorIds.includes(draggedId)) return false; // già linkato
+    const dragged = tasks.find((t) => t.id === draggedId);
+    if (!dragged) return false;
+    if (!isLinkExamCompatible(task, dragged)) return false;
+    if (wouldCreateCycle(tasks, task.id, draggedId)) return false;
+    return true;
+  };
+
+  const onDragStart = (e: DragEvent<HTMLDivElement>) => {
+    currentDraggedId = task.id;
+    e.dataTransfer.setData("application/x-todo-task-id", String(task.id));
+    e.dataTransfer.effectAllowed = "link";
+  };
+
+  const onDragEnd = () => {
+    currentDraggedId = null;
+  };
+
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (currentDraggedId == null) return;
+    if (!isValidDrop(currentDraggedId)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "link";
+    if (!isDropTarget) setIsDropTarget(true);
+  };
+
+  const onDragLeave = () => setIsDropTarget(false);
+
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDropTarget(false);
+    const raw = e.dataTransfer.getData("application/x-todo-task-id");
+    const draggedId = Number(raw);
+    if (!Number.isFinite(draggedId) || !isValidDrop(draggedId)) return;
+    // task = bersaglio del drop = predecessore. draggedId = successore.
+    void addLink(task.id, draggedId);
+  };
 
   const className = [
     "chain-node",
     task.done ? "done" : "",
     isNextActionable && !task.done ? "next-actionable" : "",
     isLast ? "is-last" : "",
+    isDropTarget ? "drop-target" : "",
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={className} style={{ ["--marker-color" as string]: markerColor } as React.CSSProperties}>
+    <div
+      className={className}
+      style={{ ["--marker-color" as string]: markerColor } as React.CSSProperties}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <div className="chain-node-rail">
         <button
           type="button"
@@ -55,18 +118,31 @@ function ChainNode({ task, isNextActionable, isLast, onEdit }: ChainNodeProps) {
           onClick={() => void setDone(task.id, !task.done)}
           aria-label={task.done ? `Riapri ${task.title}` : `Segna ${task.title} come fatta`}
           aria-pressed={task.done}
+          draggable={false}
         />
         {!isLast && <div className="chain-connector" aria-hidden />}
       </div>
       <div className="chain-node-content">
-        <div
-          className="chain-node-head"
-          onClick={onEdit}
-          onKeyDown={(e) => { if (e.key === "Enter") onEdit(); }}
-          role="button"
-          tabIndex={0}
-        >
-          <span className="chain-node-title">{task.title}</span>
+        <div className="chain-node-head">
+          <span
+            className="chain-node-title"
+            onClick={onEdit}
+            onKeyDown={(e) => { if (e.key === "Enter") onEdit(); }}
+            role="button"
+            tabIndex={0}
+          >
+            {task.title}
+          </span>
+          <button
+            type="button"
+            className="chain-node-add-next"
+            onClick={(e) => { e.stopPropagation(); onAddSuccessor(); }}
+            aria-label={`Crea una task successiva di ${task.title}`}
+            title="Crea task successiva"
+            draggable={false}
+          >
+            <Plus size={12} />
+          </button>
           <div className="chain-node-meta">
             {exam && <span>{exam.name}</span>}
             {task.dueDate && <span>{formatDueShort(task.dueDate)}</span>}
