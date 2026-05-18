@@ -81,21 +81,53 @@ function computeProjectEdges(dayKey: string, exams: Exam[]): ProjectEdges {
   return { start, end, startColor, endColor };
 }
 
+interface TaskDot {
+  key: string;
+  color: string;
+  name: string;
+  count: number;
+}
+
+function buildTaskDots(tasksDue: Task[], exams: Exam[]): TaskDot[] {
+  // Raggruppa per examId (o "free" per task senza esame). Un pallino per gruppo,
+  // indipendentemente dal numero di task in quel gruppo.
+  const groups = new Map<number | "free", { color: string; name: string; count: number }>();
+  for (const t of tasksDue) {
+    const key: number | "free" = t.examId ?? "free";
+    let g = groups.get(key);
+    if (!g) {
+      if (t.examId == null) {
+        g = { color: "var(--text)", name: "senza esame", count: 0 };
+      } else {
+        const exam = exams.find((e) => e.id === t.examId);
+        g = { color: exam?.color ?? "var(--ink-50)", name: exam?.name ?? "?", count: 0 };
+      }
+      groups.set(key, g);
+    }
+    g.count++;
+  }
+  // Ordine: esami alfabeticamente, "senza esame" sempre in coda.
+  const entries = Array.from(groups.entries()).sort(([ka, a], [kb, b]) => {
+    if (ka === "free") return 1;
+    if (kb === "free") return -1;
+    return a.name.localeCompare(b.name);
+  });
+  return entries.map(([k, v]) => ({ key: String(k), color: v.color, name: v.name, count: v.count }));
+}
+
 export function DayCell({ day, exams, tasksDue = [], onClick }: DayCellProps) {
   const activities = buildActivities(day.key, exams);
   const banners = buildBanners(day.key, exams);
   const edges = computeProjectEdges(day.key, exams);
-  const taskCount = tasksDue.length;
-  const taskTitle = taskCount > 0
-    ? taskCount === 1
-      ? `Da fare: ${tasksDue[0].title}`
-      : `${taskCount} task da fare`
+  const taskDots = buildTaskDots(tasksDue, exams);
+  const taskTitle = taskDots.length > 0
+    ? `Da fare: ${taskDots.map((d) => `${d.name} (${d.count})`).join(", ")}`
     : "";
 
   const splitN = Math.min(activities.length, 4);
   const visibleBanners = banners.slice(0, 2);
   const overflowCount = banners.length - visibleBanners.length;
-  const isEmpty = activities.length === 0 && banners.length === 0 && taskCount === 0;
+  const isEmpty = activities.length === 0 && banners.length === 0 && taskDots.length === 0;
   const isWeekend = day.col >= 5;
 
   const classes = [
@@ -119,10 +151,11 @@ export function DayCell({ day, exams, tasksDue = [], onClick }: DayCellProps) {
       <div className="cell-head">
         {day.isToday && <span className="oggi">OGGI</span>}
         <span className="day-num">{day.day}</span>
-        {taskCount > 0 && (
+        {taskDots.length > 0 && (
           <span className="task-flag" title={taskTitle} aria-label={taskTitle}>
-            {taskCount > 1 && <span className="task-flag-count">{taskCount}</span>}
-            <span className="task-flag-dot" />
+            {taskDots.map((d) => (
+              <span key={d.key} className="task-flag-dot" style={{ background: d.color }} />
+            ))}
           </span>
         )}
       </div>
