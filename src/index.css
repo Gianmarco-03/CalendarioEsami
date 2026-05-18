@@ -329,7 +329,6 @@
     position: relative;
     min-height: 0;
     min-width: 0;
-    background: color-mix(in srgb, var(--bc) 30%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -338,14 +337,27 @@
     container-type: size;
     container-name: band;
   }
-  .cell-redesign .band-icon {
+  /* Progetto: band piena, icona in chiaro — peso forte (ci stai lavorando). */
+  .cell-redesign .band.band-project {
+    background: var(--bc);
+  }
+  .cell-redesign .band.band-project .band-icon {
+    color: #ffffff;
+  }
+  /* Studio: band soffusa, icona nel colore esame — peso leggero. */
+  .cell-redesign .band.band-study {
+    background: color-mix(in srgb, var(--bc) 18%, transparent);
+  }
+  .cell-redesign .band.band-study .band-icon {
     color: var(--bc);
+  }
+  .cell-redesign .band-icon {
     /* Scala con la dimensione della BANDA (non della cella) — coerente tra layout. */
     width:  clamp(12px, min(45cqh, 45cqw), 36px);
     height: clamp(12px, min(45cqh, 45cqw), 36px);
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.4));
   }
-  :root:not(.dark) .cell-redesign .band-icon {
+  :root:not(.dark) .cell-redesign .band.band-study .band-icon {
     filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
   }
 
@@ -427,13 +439,17 @@
     width: 3px;
     background: var(--ec);
   }
+  .exam-row-redesign-icon {
+    margin-left: 9px;
+    color: var(--ec);
+    flex-shrink: 0;
+  }
   .exam-row-redesign-name {
     flex: 1;
     min-width: 0;
     font-size: 12.5px;
     font-weight: 600;
     color: var(--color-app-fg);
-    margin-left: 9px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

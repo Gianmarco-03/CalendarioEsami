@@ -8,16 +8,17 @@ import { DayModal } from "./components/DayModal";
 import { ImportModal } from "./components/ImportModal";
 import { StatsView } from "./components/StatsView";
 import { TodoView } from "./components/TodoView";
-import { SettingsModal } from "./components/SettingsModal";
+import { SettingsView } from "./components/SettingsView";
 import type { AppSection } from "./components/SectionSwitcher";
 import type { ExamKind } from "./types";
-import { CalendarDays, BarChart3, ListTodo, Globe } from "lucide-react";
+import { CalendarDays, BarChart3, ListTodo, Globe, Settings as SettingsIcon } from "lucide-react";
 import { iconFor } from "./exam-icons";
 
 const SECTION_META: Record<AppSection, { label: string; Icon: typeof CalendarDays }> = {
   calendar: { label: "Calendario Appelli e Studio", Icon: CalendarDays },
   stats:    { label: "Statistiche",                 Icon: BarChart3 },
   todo:     { label: "To-do",                       Icon: ListTodo },
+  settings: { label: "Impostazioni",                Icon: SettingsIcon },
 };
 
 function Shell() {
@@ -27,7 +28,6 @@ function Shell() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [section, setSection] = useState<AppSection>("calendar");
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
@@ -78,7 +78,7 @@ function Shell() {
           onAdd={openCreate}
           onEdit={openEdit}
           onImport={() => setImportOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => setSection("settings")}
           selectedExamId={selectedExamId}
           onSelectExam={setSelectedExamId}
         />
@@ -88,6 +88,7 @@ function Shell() {
             {section === "calendar" && <Calendar onDayClick={setDayKey} />}
             {section === "stats" && <StatsView onDayClick={setDayKey} selectedExamId={selectedExamId} />}
             {section === "todo" && <TodoView />}
+            {section === "settings" && <SettingsView />}
           </div>
         </main>
       </div>
@@ -99,7 +100,6 @@ function Shell() {
       />
       <DayModal open={dayKey !== null} dayKey={dayKey} onClose={() => setDayKey(null)} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

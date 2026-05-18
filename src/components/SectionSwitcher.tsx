@@ -1,14 +1,15 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { CalendarDays, BarChart3, ListTodo } from "lucide-react";
 
-export type AppSection = "calendar" | "stats" | "todo";
+export type AppSection = "calendar" | "stats" | "todo" | "settings";
 
 interface SectionSwitcherProps {
   active: AppSection;
   onChange: (s: AppSection) => void;
 }
 
-interface Item { id: AppSection; label: string; Icon: typeof CalendarDays }
+type SwitcherId = Exclude<AppSection, "settings">;
+interface Item { id: SwitcherId; label: string; Icon: typeof CalendarDays }
 const ITEMS: Item[] = [
   { id: "calendar", label: "Calendario", Icon: CalendarDays },
   { id: "stats", label: "Statistiche", Icon: BarChart3 },
@@ -17,18 +18,20 @@ const ITEMS: Item[] = [
 
 export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const btnRefs = useRef<Record<AppSection, HTMLButtonElement | null>>({
-    calendar: null, stats: null, todo: null,
-  });
-  const [pill, setPill] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  const btnRefs = useRef<Partial<Record<SwitcherId, HTMLButtonElement | null>>>({});
+  const [pill, setPill] = useState<{ left: number; width: number; visible: boolean }>({ left: 0, width: 0, visible: false });
 
   useLayoutEffect(() => {
+    if (active === "settings") {
+      setPill((p) => ({ ...p, visible: false }));
+      return;
+    }
     const btn = btnRefs.current[active];
     const container = containerRef.current;
     if (!btn || !container) return;
     const cRect = container.getBoundingClientRect();
     const bRect = btn.getBoundingClientRect();
-    setPill({ left: bRect.left - cRect.left, width: bRect.width });
+    setPill({ left: bRect.left - cRect.left, width: bRect.width, visible: true });
   }, [active]);
 
   return (
@@ -39,7 +42,7 @@ export function SectionSwitcher({ active, onChange }: SectionSwitcherProps) {
       <span
         aria-hidden
         className="absolute top-1 bottom-1 rounded-lg glass-panel shadow-sm transition-all duration-300 ease-out"
-        style={{ left: pill.left, width: pill.width }}
+        style={{ left: pill.left, width: pill.width, opacity: pill.visible ? 1 : 0 }}
       />
       {ITEMS.map(({ id, label, Icon }) => {
         const isActive = id === active;

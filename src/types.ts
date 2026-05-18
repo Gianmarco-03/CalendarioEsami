@@ -20,6 +20,7 @@ export interface EsameData {
   id: number;
   name: string;
   color: string;
+  icon: string;
   passed: boolean;
   defaultStudyMinutes: number;
   appelli: Appello[];
@@ -42,6 +43,7 @@ export interface DateRangeInput {
 export interface EsameInputData {
   name: string;
   color: string;
+  icon: string;
   passed: boolean;
   defaultStudyMinutes: number;
   appelli: string[];

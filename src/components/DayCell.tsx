@@ -2,7 +2,7 @@ import type { Exam } from "../types";
 import type { MonthGridDay } from "../date";
 import { inRange } from "../date";
 import { isProgetto } from "../progetto";
-import { Cpu, BrainCircuit } from "lucide-react";
+import { iconFor } from "../exam-icons";
 
 interface DayCellProps {
   day: MonthGridDay;
@@ -13,6 +13,7 @@ interface DayCellProps {
 interface Activity {
   kind: "project" | "study";
   color: string;
+  icon: string;
   examId: number;
   examName: string;
 }
@@ -37,9 +38,9 @@ function buildActivities(dayKey: string, exams: Exam[]): Activity[] {
     const isInRange = isProgetto(e) && e.ranges.some((r) => inRange(dayKey, r.start, r.end));
     const hasStudy = e.studyDays.some((s) => s.date === dayKey);
     if (isInRange) {
-      projects.push({ kind: "project", color: e.color, examId: e.id, examName: e.name });
+      projects.push({ kind: "project", color: e.color, icon: e.icon, examId: e.id, examName: e.name });
     } else if (hasStudy) {
-      studies.push({ kind: "study", color: e.color, examId: e.id, examName: e.name });
+      studies.push({ kind: "study", color: e.color, icon: e.icon, examId: e.id, examName: e.name });
     }
   }
   projects.sort((a, b) => a.examName.localeCompare(b.examName));
@@ -130,18 +131,19 @@ export function DayCell({ day, exams, onClick }: DayCellProps) {
 
       {activities.length > 0 && (
         <div className={`band-area split-${splitN}`}>
-          {activities.slice(0, 4).map((a, i) => (
-            <div
-              key={`a-${i}-${a.examId}`}
-              className="band"
-              style={{ ["--bc" as string]: a.color } as React.CSSProperties}
-              title={a.kind === "project" ? `Progetto: ${a.examName}` : `Studio: ${a.examName}`}
-            >
-              {a.kind === "project"
-                ? <Cpu className="band-icon" />
-                : <BrainCircuit className="band-icon" />}
-            </div>
-          ))}
+          {activities.slice(0, 4).map((a, i) => {
+            const Icon = iconFor(a.icon);
+            return (
+              <div
+                key={`a-${i}-${a.examId}`}
+                className={`band band-${a.kind}`}
+                style={{ ["--bc" as string]: a.color } as React.CSSProperties}
+                title={a.kind === "project" ? `Progetto: ${a.examName}` : `Studio: ${a.examName}`}
+              >
+                <Icon className="band-icon" />
+              </div>
+            );
+          })}
         </div>
       )}
 
