@@ -69,7 +69,11 @@ export interface ExamImminentCfg  { offsets: number[]; hour: number; morning_hou
 export interface ProjectDeadlineCfg { offsets: number[]; hour: number }
 export interface QuickLogPromptCfg { times: string[] }
 
-export function parseConfig<T>(json: string | undefined, fallback: T): T {
+export function parseConfig<T extends object>(json: string | undefined, fallback: T): T {
   if (!json) return fallback;
-  try { return JSON.parse(json) as T; } catch { return fallback; }
+  try {
+    const parsed = JSON.parse(json);
+    if (parsed && typeof parsed === "object") return { ...fallback, ...parsed };
+    return fallback;
+  } catch { return fallback; }
 }
