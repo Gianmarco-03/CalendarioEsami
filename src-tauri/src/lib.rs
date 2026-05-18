@@ -77,6 +77,15 @@ pub fn run() {
             commands::quicklog_log,
             commands::quicklog_recent_exam,
             commands::quicklog_active_exams,
+            commands::list_tasks,
+            commands::get_task,
+            commands::create_task,
+            commands::update_task,
+            commands::delete_task,
+            commands::set_task_done,
+            commands::set_checklist_item_done,
+            commands::add_task_link,
+            commands::remove_task_link,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

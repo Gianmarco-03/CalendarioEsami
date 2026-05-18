@@ -4,6 +4,7 @@ use rusqlite::Connection;
 
 use crate::db;
 use crate::db::types::*;
+use crate::db::task_types::*;
 use crate::notify::{prefs, scheduler, service::TauriSink, types::{NotifEvent, NotifKind, NotifPrefs}};
 
 pub struct AppState {
@@ -181,6 +182,69 @@ pub fn notif_force_tick(app: tauri::AppHandle, state: State<AppState>) -> Result
     let conn = guard.as_ref().map_err(|e| e.clone())?;
     let sink = TauriSink { app };
     scheduler::tick(conn, &sink)
+}
+
+#[tauri::command]
+pub fn list_tasks(state: State<AppState>) -> Result<Vec<Task>, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::tasks::list(conn)
+}
+
+#[tauri::command]
+pub fn get_task(state: State<AppState>, id: i64) -> Result<Task, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::tasks::get_by_id(conn, id)
+}
+
+#[tauri::command]
+pub fn create_task(state: State<AppState>, input: TaskInput) -> Result<Task, String> {
+    let mut guard = lock(&state)?;
+    let conn = guard.as_mut().map_err(|e| e.clone())?;
+    crate::db::tasks::create(conn, &input)
+}
+
+#[tauri::command]
+pub fn update_task(state: State<AppState>, id: i64, input: TaskInput) -> Result<Task, String> {
+    let mut guard = lock(&state)?;
+    let conn = guard.as_mut().map_err(|e| e.clone())?;
+    crate::db::tasks::update(conn, id, &input)
+}
+
+#[tauri::command]
+pub fn delete_task(state: State<AppState>, id: i64) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::tasks::delete(conn, id)
+}
+
+#[tauri::command]
+pub fn set_task_done(state: State<AppState>, id: i64, done: bool) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::tasks::set_done(conn, id, done)
+}
+
+#[tauri::command]
+pub fn set_checklist_item_done(state: State<AppState>, item_id: i64, done: bool) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::tasks::set_checklist_item_done(conn, item_id, done)
+}
+
+#[tauri::command]
+pub fn add_task_link(state: State<AppState>, pred_id: i64, succ_id: i64) -> Result<(), String> {
+    let mut guard = lock(&state)?;
+    let conn = guard.as_mut().map_err(|e| e.clone())?;
+    crate::db::task_links::add_link(conn, pred_id, succ_id)
+}
+
+#[tauri::command]
+pub fn remove_task_link(state: State<AppState>, pred_id: i64, succ_id: i64) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::db::task_links::remove_link(conn, pred_id, succ_id)
 }
 
 pub fn build_state(app: &tauri::App) -> AppState {
