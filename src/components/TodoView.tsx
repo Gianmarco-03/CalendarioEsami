@@ -42,6 +42,7 @@ export function TodoView() {
     e.preventDefault();
     setDetachActive(false);
     const id = Number(e.dataTransfer.getData(DRAG_MIME));
+    console.debug("[todo:dnd] drop on TodoView (detach)", { draggedId: id });
     if (!Number.isFinite(id)) return;
     void detachTask(id);
   };

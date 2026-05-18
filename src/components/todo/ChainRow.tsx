@@ -65,7 +65,9 @@ function ChainNode({ task, isNextActionable, isLast, onEdit, onAddSuccessor }: C
   const onDragStart = (e: DragEvent<HTMLDivElement>) => {
     currentDraggedId = task.id;
     e.dataTransfer.setData("application/x-todo-task-id", String(task.id));
-    e.dataTransfer.effectAllowed = "link";
+    // "linkMove" abilita sia "link" (drop su altro ChainNode) sia "move" (detach su view).
+    e.dataTransfer.effectAllowed = "linkMove";
+    console.debug("[todo:dnd] dragStart", { taskId: task.id, title: task.title });
   };
 
   const onDragEnd = () => {
@@ -92,6 +94,7 @@ function ChainNode({ task, isNextActionable, isLast, onEdit, onAddSuccessor }: C
     setIsDropTarget(false);
     const raw = e.dataTransfer.getData("application/x-todo-task-id");
     const draggedId = Number(raw);
+    console.debug("[todo:dnd] drop on ChainNode", { target: task.id, dragged: draggedId, valid: isValidDrop(draggedId) });
     if (!Number.isFinite(draggedId) || !isValidDrop(draggedId)) return;
     // task = bersaglio del drop = predecessore. draggedId = successore.
     void addLink(task.id, draggedId);
