@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ExamsProvider, useExams } from "./state";
+import { TasksProvider } from "./tasks-state";
 import { ToastProvider } from "./toast";
 import { Sidebar } from "./components/Sidebar";
 import { ExamModal } from "./components/ExamModal";
@@ -118,7 +119,9 @@ export default function App() {
   return (
     <ToastProvider>
       <ExamsProvider>
-        <Shell />
+        <TasksProvider>
+          <Shell />
+        </TasksProvider>
       </ExamsProvider>
     </ToastProvider>
   );
