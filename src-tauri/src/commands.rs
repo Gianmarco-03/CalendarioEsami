@@ -4,6 +4,7 @@ use rusqlite::Connection;
 
 use crate::db;
 use crate::db::types::*;
+use crate::notify::{prefs, scheduler, service::TauriSink, types::{NotifEvent, NotifKind, NotifPrefs}};
 
 pub struct AppState {
     pub conn: Mutex<Result<Connection, String>>,
@@ -99,6 +100,87 @@ pub fn set_setting(state: State<AppState>, key: String, value: String) -> Result
     let guard = lock(&state)?;
     let conn = guard.as_ref().map_err(|e| e.clone())?;
     db::settings::set(conn, &key, &value)
+}
+
+#[tauri::command]
+pub fn get_notif_prefs(state: State<AppState>) -> Result<NotifPrefs, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    prefs::load_all(conn)
+}
+
+#[tauri::command]
+pub fn set_notif_pref(
+    state: State<AppState>,
+    kind: String,
+    enabled: bool,
+    #[allow(non_snake_case)] configJson: Option<String>,
+) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    let cfg = configJson.unwrap_or_else(|| "{}".into());
+    prefs::upsert(conn, &kind, enabled, &cfg)
+}
+
+#[tauri::command]
+pub fn notif_test_send(app: tauri::AppHandle, kind: String) -> Result<(), String> {
+    use crate::notify::service::NotificationSink;
+    let sink = TauriSink { app };
+    let ev = NotifEvent {
+        kind: parse_kind(&kind)?,
+        dedup_key: format!("test:{}", chrono::Local::now().timestamp_millis()),
+        title: "Test notifica".into(),
+        body: format!("Notifica di prova per il tipo {kind}."),
+        with_actions: false,
+        sound: None,
+    };
+    sink.send(&ev)
+}
+
+fn parse_kind(s: &str) -> Result<NotifKind, String> {
+    for k in NotifKind::all() {
+        if k.as_str() == s { return Ok(*k); }
+    }
+    Err(format!("kind sconosciuto: {s}"))
+}
+
+#[tauri::command]
+pub fn quicklog_log(state: State<AppState>, exam_id: i64, minutes: i32) -> Result<(), String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    let today = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
+    let _ = crate::db::exams::toggle_study_day(conn, exam_id, &today);
+    crate::db::exams::set_study_day_minutes(conn, exam_id, &today, Some(minutes))
+}
+
+#[tauri::command]
+pub fn quicklog_recent_exam(state: State<AppState>) -> Result<Option<i64>, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    crate::notify::actions::recent_active_exam(conn)
+}
+
+#[tauri::command]
+pub fn quicklog_active_exams(state: State<AppState>) -> Result<Vec<(i64, String, String)>, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, color FROM exams WHERE passed = 0 ORDER BY name COLLATE NOCASE"
+    ).map_err(|e| format!("prepare: {e}"))?;
+    let rows = stmt.query_map([], |r| {
+        Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))
+    }).map_err(|e| format!("query: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows { out.push(r.map_err(|e| format!("row: {e}"))?); }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn notif_force_tick(app: tauri::AppHandle, state: State<AppState>) -> Result<usize, String> {
+    let guard = lock(&state)?;
+    let conn = guard.as_ref().map_err(|e| e.clone())?;
+    let sink = TauriSink { app };
+    scheduler::tick(conn, &sink)
 }
 
 pub fn build_state(app: &tauri::App) -> AppState {
