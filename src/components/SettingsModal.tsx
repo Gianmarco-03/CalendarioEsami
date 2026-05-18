@@ -2,6 +2,8 @@ import { Modal } from "./Modal";
 import { ModalButton } from "./ModalButton";
 import { useTheme } from "../theme";
 import { Sun, Moon, Settings as SettingsIcon } from "lucide-react";
+import { NotificationsSettings } from "./NotificationsSettings";
+import { SystemSettings } from "./SystemSettings";
 
 interface SettingsModalProps {
   open: boolean;
@@ -27,8 +29,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       size="sm"
       footer={footer}
     >
-      <div className="flex flex-col gap-2">
-        <div className="text-[11.5px] font-semibold text-app-muted">Tema</div>
+      <Section title="Tema">
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -57,14 +58,30 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <Moon size={22} /> Scuro
           </button>
         </div>
-      </div>
+      </Section>
 
-      <div className="flex flex-col gap-2 pt-4 border-t border-app-border">
-        <div className="text-[11.5px] font-semibold text-app-muted">Profilo utente</div>
+      <Section title="Notifiche">
+        <NotificationsSettings />
+      </Section>
+
+      <Section title="App e sistema">
+        <SystemSettings />
+      </Section>
+
+      <Section title="Profilo utente">
         <p className="text-[12px] text-app-muted leading-relaxed m-0">
           In arrivo: nome, avatar, obiettivi di studio settimanali, sincronizzazione locale tra dispositivi.
         </p>
-      </div>
+      </Section>
     </Modal>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 pt-4 border-t border-app-border first:pt-0 first:border-t-0">
+      <div className="text-[11.5px] font-semibold text-app-muted">{title}</div>
+      {children}
+    </div>
   );
 }
