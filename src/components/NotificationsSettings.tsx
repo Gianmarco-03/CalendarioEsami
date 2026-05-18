@@ -205,14 +205,14 @@ function Toggle({
         onChange(!checked);
       }}
       className={
-        "relative inline-flex items-center w-10 h-5 rounded-full transition-colors shrink-0 p-0.5 " +
-        (checked ? "bg-zinc-800" : "bg-zinc-200")
+        "relative inline-flex items-center w-10 h-5 rounded-full transition-colors shrink-0 p-0.5 border border-app-border " +
+        (checked ? "bg-app-fg" : "bg-app-bg")
       }
     >
       <span
         className={
           "block w-4 h-4 rounded-full shadow-sm transition-transform " +
-          (checked ? "bg-white" : "bg-zinc-600") + " " +
+          (checked ? "bg-app-bg" : "bg-app-fg") + " " +
           (checked ? "translate-x-5" : "translate-x-0")
         }
       />
